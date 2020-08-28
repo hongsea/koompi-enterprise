@@ -1,0 +1,4 @@
++ Set permissions and regenerate the new /etc/resolv.conf file:
+
+$ sudo chmod 644 /etc/resolv.conf.tail
+$ sudo resolvconf -u   

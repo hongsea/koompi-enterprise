@@ -1,0 +1,558 @@
+#!/bin/bash
+clear
+
+##get process error
+# set -uo pipefail
+# trap 's=$?; echo "$0: Error on line "$LINENO": $BASH_COMMAND"; exit $s' ERR
+
+##color
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;32m'
+NC='\033[0m'
+
+##function loading ..................................................................................................
+# loading(){
+# for (( i=10; i>0; i--)); do
+
+# printf "\rStarting in $i seconds..."
+# read -s -N 1 -t 1 key
+
+# if [ "$key" == $'\x0a' ] ;then
+#         echo -e "\n [Enter] Pressed"
+#         break
+# fi
+
+# done
+# }
+# loading
+
+##check user for run script
+check_root_user(){
+    if [[ $(id -u) == 0 ]];then 
+    echo "This script run as root"
+    exit;
+    fi 
+}
+check_root_user
+
+##check package installed
+install_package_base(){
+    echo "+===================+"
+    echo -e "|$BLUE Install package. $NC |"
+    echo "+===================+"
+    for PKG in $(cat /opt/pionux/koompi-enterprise-server/serversetup/Package/package_x86_64)
+    do
+        if [[ -n "$(pacman -Q ${PKG})" ]];then 
+            echo -e "Package: ${RED} ${PKG} ${NC} Installed."
+        else 
+            sudo pacman -S ${PKG} --noconfirm
+            echo -e "Package: ${RED} ${PKG} ${NC} Installed successfull."
+        fi
+    done
+}
+install_package_base
+
+# echo "Package Downgrade"
+downgrade_package_base(){
+    for DOWN_GRADE in $(cat /opt/pionux/koompi-enterprise-server/serversetup/Package/PACKAGEDOWNGRADE)
+    do
+        VERSION=$(echo ${DOWN_GRADE} | awk -F'_' '{print $2}')
+        PACKAGE_NAME=$(echo ${DOWN_GRADE} | awk -F'_' '{print $1}')
+        CUREENT_VERSION_PKG=$(sudo pacman -Qi ${PACKAGE_NAME} | grep Version | awk -F' ' '{print $3}')
+        if [[ "${CUREENT_VERSION_PKG}" != "${VERSION}"  ]];then 
+            sudo pacman -U /opt/pionux/koompi-enterprise-server/serversetup/Package/${DOWN_GRADE} --noconfirm
+        fi 
+        echo -e "Downgrade ${RED} ${PACKAGE_NAME}:${CUREENT_VERSION_PKG} ${YELLOW} ==>${NC} ${RED} ${PACKAGE_NAME}:${VERSION} ${NC} successfull."
+    done
+}
+
+##.............................NTP SERVER FUNCTION SETUP.............................
+echo 
+NTP_FILE=(/etc/ntp.conf)
+
+echo -e "+========================+"
+echo -e "|${BLUE} Configure  NTP Server. ${NC}|"
+echo -e "+========================+"
+
+function ntp(){
+    echo "  + Configuring ntp.conf..."
+    sudo cp /opt/pionux/koompi-enterprise-server/serversetup/NTP/ntp.conf /etc/ntp.conf
+    
+    ##permission
+    echo "  + Installing ntp_signd..."
+    sudo install -d /var/lib/samba/ntp_signd
+    echo "  + Setup ownership and permission..."
+    sudo chown root:ntp /var/lib/samba/ntp_signd
+    sudo chmod 0750 /var/lib/samba/ntp_signd
+
+    ##enable service
+    echo "  + Starting service..."
+    sudo systemctl enable ntpd.service
+    sudo systemctl start ntpd.service
+    echo -e "${YELLOW} Configure NTP successful ${NC}"
+}
+##check ntp file created
+if [[ -f "${NTP_FILE}" ]];then 
+    ##check ntp config backup 
+    if [[ -f /etc/ntp.conf.backup ]];then 
+        ntp #<--call ntp
+        sleep 3
+    else 
+        sudo cp /etc/ntp.conf /etc/ntp.conf.backup
+        
+        ntp #<--call ntp
+    fi
+fi
+
+
+##................................BIND SERVER FUNCTION SETUP.............................
+echo 
+
+#permission
+permission(){
+
+    echo "configuring zone ..."
+    sudo cp /opt/pionux/koompi-enterprise-server/serversetup/Bind/empty0.zone /var/named/
+    sudo cp /opt/pionux/koompi-enterprise-server/serversetup/Bind/root.hint /var/named/
+    sudo touch /var/lib/samba/private/dns.keytab
+
+    echo "  + Set owner and permission on dns.keytab..."
+    sudo chgrp named /var/lib/samba/private/dns.keytab
+    sudo chmod g+r /var/lib/samba/private/dns.keytab
+
+    echo "  + Creating named.log..."
+    sudo touch /var/log/named.log
+
+    echo "  + Set owner and permission on name.log..."
+    sudo chown root:named /var/log/named.log
+    sudo  chmod 664 /var/log/named.log
+
+    echo "  + Coping empty.zone..."
+    sudo cp /opt/pionux/koompi-enterprise-server/serversetup/Bind/empty0.zone /var/named/empty0.zone
+
+    echo "  + Set permission on empty0.zone..."
+    sudo chown root:named /var/named/empty0.zone
+
+}
+
+echo -e "+==========================+"
+echo -e "|${BLUE} Configure  BIND Server. ${NC} |"
+echo -e "+==========================+"
+sleep 3
+
+BIND_FILE=/etc/named.conf
+#check file named.conf created
+if [[ -f "${BIND_FILE}" ]];then
+    function check(){
+        if [[ -f ${BIND_FILE}.backup ]];then 
+            sudo cp /opt/pionux/koompi-enterprise-server/serversetup/Bind/named.conf ${BIND_FILE}
+            echo "  + Configuring named.conf..."
+            permission #<--call permission
+            echo -e "${YELLOW} Configure BIND successful. ${NC}"
+        else 
+            echo "  + Coping to backup file"
+            sudo cp /etc/named.conf /etc/named.conf.backup
+            echo "  + Configuring named.conf..."
+            sudo cp /opt/pionux/koompi-enterprise-server/serversetup/Bind/named.conf ${BIND_FILE}
+            permission #<--call permission
+            echo  -e "${YELLOW} Configure BIND successful. ${NC}"
+        fi
+    }
+    check #<--call check
+else 
+    sudo touch /etc/named.conf
+    check #<-- call check
+fi
+
+
+#................................SAMBA ACTIVE DIRECTORY FUNCTION..............................
+echo
+echo "+=========================+"
+echo -e "|${BLUE} Configure SAMBA server. ${NC}|"
+echo "+=========================+"
+echo "  + Disable and stop service..."
+
+sudo systemctl disable samba
+sudo systemctl stop samba
+
+samba(){
+
+read -p "$(echo -e "$RED Realm [example.com]: $NC")" samba_realm
+read -p "$(echo -e "$RED Domain [example]: $NC")" samba_domain
+read -p "$(echo -e "$RED Server Role (dc, member, standalone) [dc]: $NC")" SAMBA_ROLE
+
+echo "Delect file config smb.conf"
+sudo rm -rf /etc/samba/smb.conf
+
+#text lower to upper
+SAMBA_DOMAIN=$(echo "$samba_domain" | tr '[:lower:]' '[:upper:]')
+SAMBA_REALM=$(echo "$samba_realm" | tr '[:lower:]' '[:upper:]')
+SAMBA_BACKEND=BIND9_DLZ
+
+echo 
+echo "........Your Info........"
+echo -e "$RED Realm:$NC $SAMBA_REALM" 
+echo -e "$RED Domain:$NC $SAMBA_DOMAIN"
+echo -e "$RED Server Role:$NC $SAMBA_ROLE"
+echo -e "$RED DNS Backend:$NC $SAMBA_BACKEND"
+
+read -p "$(echo -e "$RED continue or again[C/A]: $NC")" ca
+CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
+if [[ $CA == c  ]];then
+
+config(){
+[ -z "${SAMBA_REALM}" ]
+[ -z "${SAMBA_DOMAIN}" ]
+[ -z "${SAMBA_ROLE}" ]
+[ -z "${SAMBA_BACKEND}" ]
+    cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
+${SAMBA_REALM}
+${SAMBA_DOMAIN}
+${SAMBA_ROLE}
+${SAMBA_BACKEND}
+EOF
+}
+
+main(){
+    USERNAME=$(id -u -n)
+    config
+    if [[ -f /etc/samba/smb.conf ]];then
+        sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.backup
+    fi 
+    echo "  + Configuring smb.conf..."
+    SMB=/etc/samba/smb.conf
+    HOSTNAME=$(echo "$(hostname)" | tr '[:lower:]' '[:upper:]')
+    sudo chown -R $USERNAME:users $SMB
+    echo -e "# Global parameters" > $SMB
+    echo -e "[global]" >> $SMB
+    echo -e "\tnetbios name = $HOSTNAME" >> $SMB
+    echo -e "\trealm = ${SAMBA_REALM}" >> $SMB
+    echo -e "\tworkgroup = ${SAMBA_DOMAIN}" >> $SMB
+    echo "  + Configure path..."
+    read -p "Netlogon Path: " NETLOGONPATH
+    read -p "Home Path: " HOMEPATH
+    read -p "Profiles Path: " PROFILESPATH
+
+    #create path directory
+    sudo mkdir -p $NETLOGONPATH
+    sudo mkdir -p $HOMEPATH
+    sudo mkdir -p $PROFILESPATH
+
+    #permission
+    sudo chown -R root:users $NETLOGONPATH
+    sudo chown -R root:users $HOMEPATH
+    sudo chown -R root:users $PROFILESPATH
+    sudo chmod 0777 $NETLOGONPATH
+    sudo chmod 0777 $HOMEPATH
+    sudo chmod 0777 $PROFILESPATH
+
+    grep -rli SMBNE /opt/pionux/koompi-enterprise-server/serversetup/samba/smb | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
+    grep -rli SMBHO /opt/pionux/koompi-enterprise-server/serversetup/samba/smb | xargs -i@ sed -i s+SMBHO+$HOMEPATH+g @
+    grep -rli SMPRO /opt/pionux/koompi-enterprise-server/serversetup/samba/smb | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
+    cat /opt/pionux/koompi-enterprise-server/serversetup/samba/smb >> $SMB
+    sudo chown -R root:root $SMB
+
+    echo "  + Creating sambaldb.sh to set LDB_MODULES_PATH"
+    SAMBALDB_FILE=(/etc/profile.d/sambaldb.sh)
+    sudo touch ${SAMBALDB_FILE}
+    sudo chown -R ${USERNAME}:users ${SAMBALDB_FILE}
+
+    echo 'export LDB_MODULES_PATH="${LDB_MODULES_PATH}:/usr/lib/samba/ldb"' > ${SAMBALDB_FILE}
+
+    sudo chown -R root:root ${SAMBALDB_FILE}
+
+    echo "  + Set permission "
+    sudo sudo chmod 0755 /etc/profile.d/sambaldb.sh
+    
+    echo "  + Run . /etc/profile.d/sambaldb.sh"
+    /etc/profile.d/sambaldb.sh
+    
+    echo "  + Enable and Start service..."
+    sudo systemctl enable samba
+    sudo systemctl start samba
+    
+    echo -e "${YELLOW} Configure SAMBA successful. ${NC}"
+}
+main #<--call man
+else
+    samba #<--call samba
+fi
+}
+samba #<--call samba
+
+##.............................SETUP KERBEROS SERVER..........................
+echo
+echo "+============================+"
+echo -e "|${BLUE} Configure KERBEROS server. ${NC}|"
+echo "+============================+"
+echo "  + Coping krb5.conf..."
+sudo cp /var/lib/samba/private/krb5.conf /etc/krb5.conf
+echo -e "${YELLOW} Configure KERBEROS successful. ${NC}"
+
+
+##..............................SETUP RESOLVE....................................
+echo 
+echo "+===================+"
+echo -e "|${BLUE} Configure Resolve.${NC}|"
+echo "+===================+"
+echo 
+read -p "$(echo -e "${RED} Domain:${NC} ")" DNS_DOMAIN
+read -p "$(echo -e "${RED} IP Address:${NC}")" DNS_IPADDRESS
+
+RESOLV_FILE=/etc/resolv.conf.tail
+USERNAME=$(id -n -u)
+
+resolv(){
+    echo "  + Configure resolv.conf.tail... "
+    echo "search $DNS_DOMAIN" > $RESOLV_FILE
+    echo "nameserver $DNS_IPADDRESS" >> $RESOLV_FILE
+    echo "nameserver 8.8.8.8" >> $RESOLV_FILE
+    echo "nameserver 8.8.4.4" >> $RESOLV_FILE
+
+    ##permission
+    echo "  + set permission on resolve.conf.tail..."
+    sudo chmod 644 /etc/resolv.conf.tail
+    echo "  + Command resolveconf -u..."
+    sudo resolvconf -u
+}
+
+hosts(){
+    echo " + Configure hosts..."
+    sudo chmod 777 /etc/hosts
+    if [[ -f "/etc/hosts.backup" ]]; then
+        echo "${DNS_IPADDRESS}     ${DNS_DOMAIN}" >> /etc/hosts
+        sudo chmod 644 /etc/hosts
+    else
+        sudo cp /etc/hosts /etc/hosts.backup
+        echo "${DNS_DOMAIN}     ${RESOLV_FILE}" >> /etc/hosts
+        sudo chmod 644 /etc/hosts        
+    fi
+}
+hosts #<--call hosts
+
+echo 
+
+if [[ -f $RESOLV_FILE ]];then
+    sudo chown -R $USERNAME:users $RESOLV_FILE
+    resolv #<--call resolv
+    echo -e "$YELLOW Configure RESOLVE successful. $NC"
+
+else
+    sudo touch $RESOLV_FILE
+    sudo chown -R $USERNAME:users $RESOLV_FILE
+    resolv #<--call resolv
+    echo -e "$YELLOW Configure RESOLVE successful. $NC"
+fi  
+
+#................................SET UP DNS BACKEND WITH SAMBA...............................
+echo 
+echo "+====================+"
+echo -e "|$BLUE Samba backend DNS. $NC|"
+echo "+====================+"
+
+dns(){
+    ##cut ip address on index
+    ip1=$(echo $DNS_IPADDRESS | awk -F'.' '{print $1}')
+    ip2=$(echo $DNS_IPADDRESS | awk -F'.' '{print $2}')
+    ip3=$(echo $DNS_IPADDRESS | awk -F'.' '{print $3}')
+    ip4=$(echo $DNS_IPADDRESS | awk -F'.' '{print $4}')
+    echo
+    echo ".........Your Input........."
+    echo "sudo samba-tool dns zonecreate $(hostname).$DNS_DOMAIN $ip3.$ip2.$ip1.in-addr.arpa -U Administrator"
+    echo "sudo  samba-tool dns add $(hostname).$DNS_DOMAIN $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $(hostname).$DNS_DOMAIN -U Administrator"
+    echo "sudo host -t PTR $DNS_IPADDRESS"
+    read -p "$(echo -e "Continue or Again [C/A]: ")" dns_ca
+    DNS_CA=$(echo $dns_ca | tr '[:upper:]' '[:lower:]')
+    if [[ $DNS_CA == C || $DNS_CA == c ]];then
+        echo "  + Creating DNS..."
+        sudo samba-tool dns zonecreate $DNS_DOMAIN $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
+        sudo  samba-tool dns add $DNS_DOMAIN $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $DNS_DOMAIN -U Administrator
+        sudo host -t PTR $DNS_IPADDRESS
+    else
+    dns #<--call dns
+    fi
+}
+dns #<--call dns
+
+##..................................SETUP NSSWITCH............................
+echo 
+echo "+===================+"
+echo -e "|$BLUE Configure Nsswitch $NC|"
+echo "+===================+"
+echo "  + Configuring nsswithch..."
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/nsswitch/nsswitch.conf /etc/nsswitch.conf
+echo -e "$YELLOW Configure Nsswitch successful. $NC"
+
+##.................................TESTING INSTALLATION..........................
+echo 
+echo "+=================+"
+echo -e "|$BLUE Test Installing.$NC|"
+echo "+=================+"
+echo "  + Restarting service samba and ntp..."
+sudo systemctl restart samba
+sudo systemctl 'enable' named
+sudo systemctl start named
+echo "  + host -t SRV _ldap._tcp.$samba_realm."
+echo "  + host -t SRV _kerberos._udp.$samba_realm."
+echo "  + host -t A $samba_realm."
+HOST1=$(host -t SRV _ldap._tcp.$samba_realm.)
+HOST2=$(host -t SRV _kerberos._udp.$samba_realm.)
+HOST3=$(host -t A $samba_realm.)
+echo "  + Receive output"
+echo "      $HOST1"
+echo "      $HOST2"
+echo "      $HOST3"
+
+echo "  + NT authentication..."
+sudo smbclient //localhost/netlogon -U Administrator -c 'ls'
+sudo systemctl restart samba ntpd named
+echo "  + Disable Administrator Expriy..."
+sudo samba-tool user setexpiry Administrator --noexpiry
+echo "  + Kerberos authentication..."
+kinit administrator@$SAMBA_REALM
+echo -e "$YELLOW Test successful. $NC"
+
+
+#...............................USER AND GROUP MANAGEMENT............................
+echo 
+echo "+=================+"
+echo -e "|$BLUE User management $NC|"
+echo "+=================+"
+
+echo "  + Creating group..."
+sudo samba-tool group add network --gid-number=90 --nis-domain=$samba_realm
+sudo samba-tool group add video --gid-number=986 --nis-domain=$samba_realm
+sudo samba-tool group add storage --gid-number=988 --nis-domain=$samba_realm
+sudo samba-tool group add lp --gid-number=991 --nis-domain=$samba_realm
+sudo samba-tool group add audio --gid-number=995 --nis-domain=$samba_realm
+sudo samba-tool group add wheel --gid-number=998 --nis-domain=$samba_realm
+sudo samba-tool group add power --gid-number=98 --nis-domain=$samba_realm
+
+echo "  + Coping Desktop app..."
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/DesktopApp/Pionux.png /usr/share/pixmaps/
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/DesktopApp/pionux.desktop /usr/share/applications/
+
+echo "  + Coping user management..."
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/script/user_management/manageuser /usr/bin/
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/script/user_management/usercontrol /usr/bin/
+sudo cp /opt/pionux/koompi-enterprise-server/serversetup/DesktopApp/pionux.desktop $HOME/Desktop/
+
+echo "  + Set up permission..."
+sudo chmod +x /usr/bin/manageuser
+sudo chmod +x /usr/bin/usercontrol
+
+echo "  + Password complexity: off"
+sudo samba-tool domain passwordsettings set --complexity=off
+
+echo -e "$YELLOW Configure User management successful. $NC"
+
+echo "Set up OU"
+
+##..................................SETUP DHCP SERVER..............................
+echo 
+
+function dhcp(){
+    d='"'
+    echo "option domain-name $d$DHCP_DOMAIN$d; "> $DHCP_FILE
+    echo "option domain-name-servers $DHCP_DOMAIN;" >> $DHCP_FILE
+    echo "subnet $DHCP_NETWORK netmask $DHCP_NETMASK {" >> $DHCP_FILE
+    echo "option routers $DHCP_ROUTER;" >> $DHCP_FILE
+    echo "option subnet-mask $DHCP_NETMASK;" >> $DHCP_FILE
+    echo "range dynamic-bootp $DHCP_REANGES;}" >> $DHCP_FILE
+    #permission
+    sudo chown -R root:root /etc/dhcpd.conf
+    sudo chmod 644 /etc/dhcpd.conf
+    #start service
+    sudo systemctl enable dhcpd4
+    sudo systemctl start dhcpd4
+    echo "successful"
+}
+function reads(){
+
+    #read items
+    read -p "$(echo -e "$RED Network $NC: ")"    DHCP_NETWORK
+    read -p "$(echo -e "$RED Netmask $NC: ")"    DHCP_NETMASK
+    read -p "$(echo -e "$RED Routers $NC: ")"    DHCP_ROUTER
+    read -p "$(echo -e "$RED Ranges $NC : ")"    DHCP_REANGES
+    read -p "$(echo -e "$RED Domain $NC : ")"    DHCP_DOMAIN
+
+    #show items
+    echo -e "..........YOUR INPUT..........."
+    echo -e "$RED Network $NC: $DHCP_NETWORK"
+    echo -e "$RED Netmask $NC: $DHCP_NETMASK"
+    echo -e "$RED Routers $NC: $DHCP_ROUTER"
+    echo -e "$RED Ranges $NC: $DHCP_REANGES"
+    echo -e "$RED Domain $NC: $DHCP_DOMAIN"
+    read -p "continue or again [C/A]:" ca
+    CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
+    if [[ $CA == c ]];then
+        dhcp #call dhcp
+    else
+        reads #call reads
+    fi
+}
+DHCP_FILE=(/etc/dhcpd.conf)
+USERNAME=$(id -n -u)
+function maindhcp(){
+read -p "$(echo -e $YELLOW"Do you need setup $RED DHCP $NC $YELLOW Server:[Yes/No]:"$NC)" YN
+D=$(echo "$YN" | tr '[:upper:]' '[:lower:]')
+if [[ $D == yes || $D == y || $D == ye ]];then
+    if [[ -f $DHCP_FILE ]];then #check dhcp file created or not
+        if [[ -f /etc/dhcpd.conf.backup ]];then #check dhcp backup create or not
+            sudo chown -R $USERNAME:$USERNAME $DHCP_FILE
+            sudo chmod 744 $DHCP_FILE
+            reads #call reads
+        else 
+            sudo mv /etc/dhcpd.conf /etc/dhcpd.conf.backup
+            sudo touch /etc/dhcpd.conf
+            sudo chown -R $USERNAME:$USERNAME /etc/dhcpd.conf
+            sudo chmod 744 /etc/dhcpd.conf
+            reads #call reads
+        fi #end of check dhcp backup file
+    else 
+        sudo touch /etc/dhcpd.conf
+        maindhcp #call maindhcp
+    fi # end of check dhcp file
+fi
+}
+maindhcp
+
+#...................................SETUP FTP SERVER.................................
+read -p "$(echo -e $YELLOW"Do you need setup $RED FTP $NC $YELLOW Server:[Yes/No]:"$NC)" YN
+F=$(echo "$YN" | tr '[:upper:]' '[:lower:]')
+if [[ $F == yes || $F == y || $F == ye ]];then
+    #service
+    sudo systemctl enable docker 
+    sudo systemctl start docker
+    ftpread(){
+        read -p "$(echo -e "$RED Directory Path:$NC")" FTP_DIRPATH
+        read -p "$(echo -e "$RED IP Address:$NC")" FTP_IPADDRESS
+        read -p "$(echo -e "$RED Images name:$NC")" FTP_IMAGENAME
+        read -p "$(echo -e "$RED port:$NC")" FTP_PORT
+        read -p "$(echo -e "$RED Username:$NC")" FTP_NAME
+        read -s -p "$(echo -e "$RED Password:$NC")" FTP_PASSWORD
+        echo 
+        echo "............YOUR INPUT............"
+        echo -e "$RED Directory Path:$NC $FTP_DIRPATH"
+        echo -e "$RED IP Address:$NC $FTP_IPADDRESS"
+        echo -e "$RED Images name:$NC" $FTP_IMAGENAME
+        echo -e "$RED port:$NC $FTP_PORT"
+        echo -e "$RED Username:$NC $FTP_NAME"
+        echo -e "$RED Password:$NC******"
+
+        read -p "continue or again[C/A]:" ca
+        CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
+        if [ $CA == c ];then
+            #docker
+            sudo docker pull pionux/ftp:0.1
+            sudo docker run -d -v $FTP_DIRPATH:/home/vsftpd -p 20:20 -p 23:21 -p 47400-47470:47400-47470 -e FTP_USER=$FTP_NAME -e FTP_PASS=$FTP_PASSWORD -e PASV_ADDRESS=$FTP_IPADDRESS --name $FTP_IMAGENAME --restart=always pionux/ftp:0.1
+        else 
+            ftpread
+        fi
+    }
+    ftpread
+fi
+
+##call function
