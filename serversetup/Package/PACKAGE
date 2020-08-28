@@ -1,0 +1,10 @@
+bind-tools
+krb5
+ntp 
+openresolv
+samba
+bind 
+dhcp
+vsftpd
+docker
+docker-compose
