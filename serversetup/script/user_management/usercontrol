@@ -122,11 +122,11 @@ function create(){
         find=$(sudo samba-tool group list | grep $group)
         if [[ $find == $group ]];then
             sudo samba-tool user create "$name" "$passwd" \
-            --profile-path=\\\\chroyjangva.lan\\profiles\\"$name" \
+            --profile-path=\\\\lovekoompi.com\\profiles\\"$name" \
             --script-path=logon.bat --home-drive=G \
-            --home-directory=\\\\chroyjangva.lan\\"$name" \
+            --home-directory=\\\\lovekoompi.com\\"$name" \
             --given-name="$firstname" --surname="$surname" \
-            --unix-home=/home/CHROYJANGVA/"$name" \
+            --unix-home=/home/LOVEKOOMPI/"$name" \
             --job-title="$jobtitle" \
             --mail-address="$emailaddress" \
             --description="$descriptions"

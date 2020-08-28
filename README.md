@@ -21,18 +21,18 @@ It is as a designed simple and easy to use system, here are the main features of
 + Integrated software: Samba
 ```
 ## New Feature
-* Support roaming file with window
-* Auto map drive with user login
+* Have a small ISO server for koompi enterprise
+* Disk Quota (Limit amount of disk usage for user)
 
 ## Package Version
-* bind-tools-9.16.4-1
+* bind-tools-9.16.5-2
 * krb5-1.18.2-1
-* ntp-4.2.8.p14-1
+* ntp-4.2.8.p15-1
 * openresolv-3.10.0-1
 * samba-4.12.3-1
-* bind-9.16.4-1
+* bind-9.16.5-2
 * dhcp-4.4.2-2
-* vsftpd-3.0.3-6
+* vsftpd-3.0.3-7
 
 ## How to Install KOOMPI Enterprise
 ```

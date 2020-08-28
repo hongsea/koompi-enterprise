@@ -1,6 +1,6 @@
 #!/bin/bash
 #This file was create on 22/03/19
-set -x
+# set -x
 #==================== function to add group ====================== 
 function Group(){
     sudo samba-tool group addmembers $group $username > /dev/null 2>&1
@@ -9,13 +9,13 @@ function Group(){
     sudo samba-tool group addmembers storage $username > /dev/null 2>&1
     sudo samba-tool group addmembers lp $username > /dev/null 2>&1
     sudo samba-tool group addmembers audio $username > /dev/null 2>&1
-    sudo samba-tool group addmembers wheel $username > /dev/null 2>&1
+    # sudo samba-tool group addmembers wheel $username > /dev/null 2>&1
 }
 #==================== Function create folder ====================== 
 function folder(){
-    mkdir -p  /date/volume/samba/profiles/$username
-    chown -R $username:$group  /date/volume/samba/profiles/$username
-    chmod 700  /date/volume/samba/profiles/$username
+    mkdir -p  /home/samba/home/$username
+    chown -R $username:$group  /home/samba/home/$username
+    chmod 700  /home/samba/home/$username
 }
 #==================== function expiry ====================== 
 function expiry(){
@@ -30,15 +30,17 @@ function expiry(){
 
 OLDIFS=$IFS
 IFS="	"
-while read username fistname surname passwd ou group Expiry Day
+while read username fistname surname passwd ou group jobtitle emailaddress Expiry Day
 do 
-    echo -e "\e[1;33m =====> Create user $username <=====\e[0m\n\
+    echo -e "\e[1;33m =====> Creating user $username <=====\e[0m\n\
     Username        : $username \n\
     Firstname       : $fistname \n\
     Surname         : $surname \n\
     Password        : "********" \n\
     OU              : $ou \n\
     Group           : $group \n\
+    Job Title       : $jobtitle \n\
+    Email           : $emailaddress \n\
     Expriy password : $Expiry \n\
     Day             : $Day  \n"
 #Create 
@@ -67,14 +69,16 @@ do
                     sudo samba-tool user create $username $passwd \
                     --given-name=$fistname --surname=$surname \
                     --unix-home=/home/$username \
+                    --job-title="$jobtitle" \
+                    --mail-address="$emailaddress" \
                     --login-shell=/bin/fales
-                    Group #call function group
+                    Group #<--call function group
                     echo "Add group successfully."
-                    folder # call function folder
+                    folder #<-- call function folder
                     echo "create folder successfully."
-                    expiry # call function Expiry
-                    folder # call function folder
-                    sudo samba-tool user setpassword $username --newpassword=$passwd --must-change-at-next-login  
+                    expiry #<-- call function Expiry
+                    folder #<-- call function folder
+                    #sudo samba-tool user setpassword $username --newpassword=$passwd --must-change-at-next-login  
 
                 fi #end of findgroup    
             fi # end of findgroup with username

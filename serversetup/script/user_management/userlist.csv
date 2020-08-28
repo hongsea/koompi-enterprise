@@ -1,8 +1,10 @@
-test0	User0	Test0	koompi123	koompi	IT	Enable	365
-test1	User1	Test1	koompi124	koompi	IT	Enable	365
-test2	User2	Test2	koompi125	koompi	IT	Enable	365
-test3	User3	Test3	koompi126	koompi	IT	Enable	365
-test4	User4	Test4	koompi127	koompi	IT	Enable	365
-test5	User5	Test5	koompi128	koompi	IT	Enable	365
-test6	User6	Test6	koompi129	koompi	IT	Enable	365
-test7	User7	Test7	koompi130	koompi	IT	Enable	365
+user0	user0	Test	koompi123	KOOMPI	IT	Network	user0@gmail.com	Enable	365
+user1	user1	Test	koompi123	KOOMPI	IT	Network	user1@gmail.com	Enable	365
+user2	user2	Test	koompi123	KOOMPI	IT	Programming	user2@gmail.com	Enable	365
+user3	user3	Test	koompi123	KOOMPI	IT	Programming	user3@gmail.com	Enable	365
+user4	user4	Test	koompi123	KOOMPI	IT	Account	user4@gmail.com	Enable	365
+user5	user5	Test	koompi123	KOOMPI	IT	Account	user5@gmail.com	Enable	365
+user6	user6	Test	koompi123	KOOMPI	IT	HR	user6@gmail.com	Disable None
+user7	user7	Test	koompi123	KOOMPI	IT	HR	user7@gmail.com	Disable	None
+user8	user8	Test	koompi123	KOOMPI	IT	HR	user8@gmail.com	Disable	None
+user9	user9	Test	koompi123	KOOMPI	IT	HR	user0@gmail.com	Disable	None
