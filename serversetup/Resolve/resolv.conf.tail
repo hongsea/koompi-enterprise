@@ -1,0 +1,5 @@
+# Samba configuration
+search pionux.koompi.local 
+# If using IPv6, uncomment the following line
+#nameserver ::1
+nameserver 192.168.1.110

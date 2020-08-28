@@ -1,0 +1,739 @@
+#!/bin/bash
+#set -x
+if [[ $(id -u) != 0 ]];then 
+echo "This program run as root."
+exit
+fi 
+
+clear 
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+#==================== function to exit ====================== 
+function Exit(){
+        clear 
+        User
+}
+#==================== function to exit ====================== 
+function exit(){
+        clear 
+        all
+}
+#==================== function to quit ====================== 
+function Quit(){
+        exit
+}
+
+#==================== function list all user Domain ====================== 
+function listGroup(){
+    printf "\nAll group !!!\n\n"
+    sudo samba-tool group list
+    echo 
+}
+
+#==================== function list all user Domain ====================== 
+function listUser(){
+    printf "\nAll username !!!\n\n"
+    sudo samba-tool user list
+    echo 
+}
+
+#==================== function expiry ====================== 
+function Expiry(){
+    read -p "Do you want Disable or Expiry ? [D/E]: " de 
+    if [[ $de = D || $de = d ]]
+    then 
+        sudo samba-tool user setexpiry $name  --noexpiry
+    else
+        read -p "Day: " day 
+        sudo samba-tool user setexpiry --days=$day $name  
+    fi 
+
+}
+#==================== function to add group ====================== 
+function addgroup(){
+    read -p "OU: " ou
+    list=$(sudo samba-tool ou list | grep $ou | awk -F'=' '{print $2}')
+    if [[ $list != $ou ]]   
+    then
+        echo "OU=$ou does not exist!"
+        echo "Please Create OU=$ou before create this group."
+    else
+        samba-tool group add $group --groupou=OU=$ou
+    fi 
+}
+#==================== function to add group ====================== 
+function Group(){
+    sudo samba-tool group addmembers $group $name
+    sudo samba-tool group addmembers network $name 
+    sudo samba-tool group addmembers video $name
+    sudo samba-tool group addmembers storage $name
+    sudo samba-tool group addmembers lp $name
+    sudo samba-tool group addmembers audio $name
+}
+#==================== Function create user ====================== 
+function create(){
+    read -p "Firstname: " firstname
+    read -p "Surname: " surname
+    echo -e "$RED Password should start from 7 character.$NC"
+    function verifypassword(){
+    read -s -p "Password: " passwd 
+    echo
+    read -s -p "Confirm Password: " conpasswd
+    echo 
+    if [[ "$passwd" == "$conpasswd" ]] ;then
+        getpasswd=$passwd
+    else
+        echo "Your password not match."
+        echo
+        verifypassword # call verifypassword
+    fi 
+    }
+    verifypassword #call verifypassword
+
+    read -p "OU: " ou
+    #find=$(sudo samba-tool ou list | awk '/$ou/ {print $1}')
+    list=$(sudo samba-tool ou list | grep $ou | awk -F'=' '{print $2}')
+    if [[ $list != $ou ]]   
+    then
+        echo "OU=$ou does not exist."
+        echo "Please create OU=$ou before create this user."
+    else
+        read -p "Group: " group
+        read -p "Job Title: " jobtitle
+        read -p "Email Address: " emailaddress
+        read -p "Description: " descriptions
+
+        clear
+        echo "=======Your Info======"
+        echo "Username= $name"
+        echo "Firstname= $firstname"
+        echo "Surename = $surname"
+        echo "Job Title= $jobtitle"
+        echo "Group= $group"
+        echo "OU= $ou"
+        echo "Email Address= $emailaddress"
+        echo "Description= $descriptions"
+        echo 
+        read -p "Press Enter..." en
+        find=$(sudo samba-tool group list | grep $group)
+        if [[ $find == $group ]];then
+            sudo samba-tool user create "$name" "$passwd" \
+            --profile-path=\\\\chroyjangva.lan\\profiles\\"$name" \
+            --script-path=logon.bat --home-drive=G \
+            --home-directory=\\\\chroyjangva.lan\\"$name" \
+            --given-name="$firstname" --surname="$surname" \
+            --unix-home=/home/CHROYJANGVA/"$name" \
+            --job-title="$jobtitle" \
+            --mail-address="$emailaddress" \
+            --description="$descriptions"
+            Expiry # call function Expiry
+            sudo samba-tool user setpassword "$name" --newpassword="$passwd" --must-change-at-next-login
+        else
+            echo "Group= "$group" does not exist."
+            echo "Please create group "$group" before create this user."
+        fi  
+    fi    
+}
+#==================== Function create folder ====================== 
+function folder(){
+    mkdir -p /home/samba/home/$name
+    chown -R $name:$group /home/samba/home/$name
+    chmod 700 /home/samba/home/$name
+    echo "Create Home user $name suceess."
+}
+
+#==================== Function manager ====================== 
+function all(){
+    clear 
+    printf "\t\t\t\t\t\twelcome \n"
+    echo "+=========================+==================+===============+================+=================+"
+    echo "|   1. Users, Group, OU   |   2. Computers   |   3. Storage  |   4. Service   |   5. Restart    |"
+    echo "+=========================+==================+===============+================+=================+"
+    read -p "Select Number: " num 
+
+    if [[ $num = 1 ]]; then
+        function User(){
+        clear 
+        echo "+==================+"
+        echo "|  User, Group, OU |"
+        echo "+==================+"
+        echo 
+        select option in "Create(user, group, ou)" "Remove(user, group, ou)" "Search(user, group, ou)" General Exit 
+        do 
+            case $option in 
+                "Create(user, group, ou)")
+                    clear
+                    echo "+===========================+"
+                    echo "|  Create (user, group, ou) |"
+                    echo "+===========================+"
+                    select option1 in 'New User' 'New Group' 'New OU' Exit
+                    do
+                        case $option1 in 
+                            "New User")
+                                clear
+                                echo "+============+"
+                                echo "|  New User  |"
+                                echo "+============+"
+                                echo -e
+                                echo "Create user !!!"
+                                read -p "Username: " name 
+                                find=$(sudo samba-tool user list | grep $name)
+                                if [[ $name = $find ]]
+                                then 
+                                    printf "$name :is already exists\n\n"
+                                else 
+                                    create #call function create user
+                                    find=$(sudo samba-tool user list | grep $name)
+                                    if [[ $name = $find ]];then
+                                        Group # call function Group
+                                        folder # call function folder
+                                        echo
+                                    fi
+                                fi ;;
+                            "New Group")
+                                clear
+                                echo "+============+"
+                                echo "|  New Group |"
+                                echo "+============+"
+                                echo 
+                                echo "Create group !!!"
+                                read -p "groupName: " group
+                                find=$(samba-tool group list | grep $group)
+                                find1=$(samba-tool user list | grep $group)
+                                if [[ $group != $find ]]
+                                then 
+                                    if [[ $group != $find1 ]]
+                                    then 
+                                        addgroup
+                                    else 
+                                        echo "Can't Create Group Name: $group\n\n"
+                                        echo 
+                                    fi 
+                                else 
+                                    printf "Group: $group already exists.\n\n"
+                                fi ;;
+                            "New OU")
+                                clear
+                                echo "+============+"
+                                echo "|  New OU    |"
+                                echo "+============+"
+                                echo 
+                                echo "Create OU !!!"
+                                read -p "OU: " ou
+                                find=$(sudo samba-tool ou list | grep $ou)
+                                OU=$ou 
+                                if [[ $OU != $find ]]
+                                then 
+                                    sudo samba-tool ou create OU=$ou 
+                                    echo 
+                                else   
+                                    echo "$OU is already exist"
+                                fi ;;
+                            "Exit")
+                                Exit ;;
+                        esac
+                    done;;
+                "Remove(user, group, ou)")
+                    clear
+                    echo "+============================+"
+                    echo "|  Remove (User, Group, OU)  |"
+                    echo "+============================+"
+                    select option in 'Remove User' 'Remove Group' 'Remove OU' Exit 
+                        do 
+                            case $option in  
+                                "Remove User")
+                                clear
+                                echo "+===============+"
+                                echo "|  Remove User  |"
+                                echo "+===============+"
+                                    listUser
+                                    echo 
+                                    echo "Delete user !!!"
+                                    read -p "Username: " name 
+                                    find=$(sudo samba-tool user list | grep $name)
+                                    if [[ $name = $find ]]
+                                    then
+                                        read -p "Are you Delete $name ? [yes/no]: " bl
+                                        if [[ $bl = y || $bl = yes ]]
+                                        then 
+                                            sudo samba-tool user delete $name
+                                            echo  
+                                        else 
+                                            echo 
+                                            echo "OK "
+                                            echo  
+                                        fi
+                                    else 
+                                        printf "Not found user: $name\n\n"
+                                    fi  ;;
+                                "Remove Group")
+                                clear
+                                echo "+================+"
+                                echo "|  Remove Group  |"
+                                echo "+================+"
+                                    listGroup
+                                    echo "Delete group !!!"
+                                    read -p "GroupName: " group 
+                                    find=$(sudo samba-tool group list | grep $group)
+                                    if [[ $group = $find ]]
+                                    then 
+                                        read -p "Are you Delete $group ? [yes/no]: " bl
+                                        if [[ $bl = y || $bl = yes ]]
+                                        then 
+                                            sudo samba-tool group delete $group 
+                                            echo 
+                                        else 
+                                            echo "OK"
+                                            echo
+                                        fi 
+                                    else 
+
+                                        echo "Group: $group Not found."
+                                        echo  
+                                    fi ;;
+                    
+                                "Remove OU")
+                                clear
+                                echo "+=============+"
+                                echo "|  Remove OU  |"
+                                echo "+=============+"
+                                    #listOU
+                                    echo "Delete OU !!!"
+                                    read -p "NameOU: " ou 
+                                    find=$(sudo samba-tool ou list | grep $ou) 
+                                    if [[ $ou != $find ]]
+                                    then 
+                                        read -p "Are you Delete ou=$ou ? [yes/no]:" bl 
+                                        if [[ $bl = yes || $bl = y ]]
+                                        then 
+                                            sudo samba-tool ou delete OU=$ou
+                                            echo  
+                                        else 
+                                            echo "Not Delete OU=$ou"
+                                        fi 
+                                    else
+                                        echo "OU=$ou :Not Found"
+                                    fi ;;
+                                "Exit")
+                                    Exit;;
+                            esac
+                        done ;;
+                "Search(user, group, ou)")
+                    clear
+                    echo "+==========+"
+                    echo "|  Search  |"
+                    echo "+==========+"
+                    select option in 'Search User' 'Search Group' 'Search OU' Exit 
+                    do 
+                        case $option in 
+                            "Search User")
+                                clear
+                                echo "+===============+"
+                                echo "|  Search User  |"
+                                echo "+===============+"
+                                echo 
+                                echo "Search User !!!"
+                                read -p "username: " name 
+                                find=$(sudo samba-tool user list | grep $name)
+                                    if [[ $name = $find ]]
+                                    then
+                                        echo "Found $find"
+                                        echo 
+                                    else
+                                        echo "Not Found $find" 
+                                        echo 
+                                    fi;; 
+                            "Search Group")
+                                clear
+                                echo "+===============+"
+                                echo "| Search Group  |"
+                                echo "+===============+"
+                                echo
+                                echo "Search Group !!!"
+                                read -p "groupname: " group 
+                                find=$(sudo samba-tool group list | grep $group )
+                                if [[ $group = $find ]]
+                                then 
+                                    echo "Found $find" 
+                                    echo 
+                                else 
+                                    echo "Not Found $find" 
+                                    echo 
+                                fi ;;
+                            "Search OU")
+                                clear
+                                echo "+==============+"
+                                echo "|   Search OU  |"
+                                echo "+==============+"
+                                echo 
+                                echo "Search OU !!!"
+                                read -p "OUname: " ou 
+                                list=$(sudo samba-tool ou list)
+                                find=$(echo "$ou" $list | awk -F"=" '{print $2}')
+                                find1=$(echo $find | awk '{print $1}')
+                                if [[ $find1 = $ou ]]
+                                then
+                                    echo "Found OU=$ou"
+                                    echo 
+                                else
+                                    echo "Not Found OU=$ou"
+                                    echo 
+                                fi ;;
+                            "Exit")
+                                Exit ;;
+                        esac
+                    done ;;
+                "General")
+                    clear
+                    echo "+==============+"
+                    echo "|   Genernal   |"
+                    echo "+==============+"
+                    echo 
+                    select option in 'Show user detail' 'Change password' 'Account Disable' 'Account Enable' 'Limit password' 'Password Policy' 'Expiry' Exit 
+                    do 
+                        case $option in 
+                            "Show user detail")
+                                clear
+                                echo "+====================+"
+                                echo "|  Show user detail  |"
+                                echo "+====================+"
+                                echo 
+                                echo "Detail user !!! "
+                                read -p "username: " name
+                                find=$(sudo samba-tool user list | grep $name)
+                                if [[ $name = $find ]] 
+                                then 
+                                    printf "Detail: $name\n\n"
+                                    sudo samba-tool user show $name
+                                    echo 
+                                else 
+                                    printf "Not found\n\n"
+                                fi ;;
+                            "Change password")
+                                clear
+                                echo "+====================+"
+                                echo "|  Change password   |"
+                                echo "+====================+"
+                                echo 
+                                echo "Change password !!!"
+                                read -p "username: " name 
+                                find=$(sudo samba-tool user list | grep $name)
+                                    if [[ $name = $find ]]
+                                    then 
+                                        samba-tool user setpassword $name
+                                    else 
+                                        echo "can't not find user $name"
+                                    fi ;;
+                            "Account Disable")
+                                clear
+                                echo "+====================+"
+                                echo "|   Account Disable  |"
+                                echo "+====================+"
+                                echo 
+                                echo "Disable Account !!!"
+                                read -p "username: " name 
+                                find=$(sudo samba-tool user list | grep $name)
+                                if [[ $name = $find ]]
+                                then
+                                    sudo samba-tool user disable $name
+                                    echo "Account $name was disable."
+                                else
+                                    echo "can't not find user $name" 
+                                fi ;;
+                            "Account Enable")
+                                clear
+                                echo "+====================+"
+                                echo "|   Account Enable   |"
+                                echo "+====================+"
+                                echo 
+                                echo "Enable Account !!!"
+                                read -p "username: " name 
+                                find=$(sudo samba-tool user list | grep $name)
+                                if [[ $name = $find ]]
+                                then
+                                    sudo samba-tool user enable $name
+                                    echo "Account $name was enable."
+                                else
+                                    echo "can't not find user $name" 
+                                fi ;;
+                            "Limit password")
+                                clear
+                                echo "+==================+"
+                                echo "|  Limit password  |"
+                                echo "+==================+"
+                                read -p "Minimum password length: " length
+                                sudo samba-tool domain passwordsettings set --min-pwd-length=$length 
+                                echo "Minimum password length = $length" ;;
+                            "Password Policy")
+                                clear
+                                echo "+===================+"
+                                echo "|  Password Policy  |"
+                                echo "+===================+"
+                                echo 
+                                select option in 'Password complexity' \
+                                                 'Store plaintext passwords' \
+                                                 'Password history length' \
+                                                 'Minimum password length' \
+                                                 'Exit'
+                                do
+                                    case $option in 
+                                        "Password complexity")
+                                            clear
+                                            echo "+=======================+"
+                                            echo "|  Password complexity  |"
+                                            echo "+=======================+"
+                                            echo 
+                                            function pwcomplexity(){
+                                            echo 
+                                            echo "Set Password complexity."
+                                            read -p "Password complexity on/off: " onoff
+                                            if [[ $onoff == on ]];then
+                                                echo
+                                                samba-tool domain passwordsettings set --complexity=$onoff
+                                                echo "Password complexity: on"
+                                                echo "successful"
+                                                echo
+                                                samba-tool domain passwordsettings show
+                                                echo 
+                                            elif [[ $onoff == off ]];then
+                                                echo 
+                                                samba-tool domain passwordsettings set --complexity=$onoff
+                                                echo "Password complexity: off"
+                                                echo "successful"
+                                                echo 
+                                                samba-tool domain passwordsettings show
+                                                echo 
+                                            elif [[ $onoff != on && $onoff != off ]];then
+                                                echo 
+                                                echo "Not correct."
+                                                pwcomplexity
+                                                echo 
+                                            fi
+                                            }
+                                            pwcomplexity;;
+                                        "Store plaintext passwords")
+                                            clear
+                                            echo "+============================+"
+                                            echo "|  Store plaintext password  |"
+                                            echo "+============================+"
+                                            function plaintext(){
+                                            echo 
+                                            echo "Set Store plaintext passwords."
+                                            read -p "Store plaintext passwords on/off: " onoffs
+                                            if [[ $onoffs == on ]];then
+                                                echo 
+                                                sudo samba-tool domain passwordsettings set --store-plaintext=$onoffs
+                                                echo "Store plaintext passwords: on"
+                                                echo "successful"
+                                                echo
+                                                samba-tool domain passwordsettings show
+                                                echo 
+                                            elif [[ $onoffs == off ]];then
+                                                echo 
+                                                sudo samba-tool domain passwordsettings set --store-plaintext=$onoffs
+                                                echo "Store plaintext passwords: off"
+                                                echo "successfull"
+                                                echo 
+                                                samba-tool domain passwordsettings show
+                                                echo 
+                                            elif [[ $onoffs != on && $onoffs != off ]];then
+                                                echo 
+                                                echo "Not correct."
+                                                plaintext
+                                                echo 
+                                            fi
+                                            }
+                                            plaintext;;
+                                        "Password history length")
+                                            clear
+                                            echo "+===========================+"
+                                            echo "|  Password history length  |"
+                                            echo "+===========================+"
+                                            echo
+                                            echo "Set Password history length."
+                                            echo "Default is 24 "
+                                            read -p "Password history length: " pwlength
+                                            sudo samba-tool domain passwordsettings set --history-length=$pwlength
+                                            echo "Password history length: $pwlength"
+                                            echo "successfull"
+                                            echo 
+                                             samba-tool domain passwordsettings show
+                                            echo;;
+                                        "Minimum password length")
+                                            clear
+                                            echo "+===========================+"
+                                            echo "|  Minimum password length  |"
+                                            echo "+===========================+"
+                                            echo
+                                            echo "Set Minimum password length."
+                                            echo "Default is 24 "
+                                            read -p "Minimum password length: " pwlengths
+                                            sudo samba-tool domain passwordsettings set --history-length=$pwlengths
+                                            echo "Minimum password length: $pwlengths"
+                                            echo "successfull"
+                                            echo 
+                                             samba-tool domain passwordsettings show
+                                            echo;;
+                                        "Exit")
+                                            Exit;
+                                    esac
+                                done ;;                              
+                            "Expiry")
+                                clear
+                                echo "+==========+"
+                                echo "|  Expiry  |"
+                                echo "+==========+"
+                                select option3 in 'Enable exprise' 'Disable exprise' Exit
+                                do
+                                    case $option3 in 
+                                        "Enable exprise")
+                                            clear
+                                            echo "+==================+"
+                                            echo "|  Enable exprise  |"
+                                            echo "+==================+"
+                                            echo 
+                                            echo "Change password !!!"
+                                            read -p "username: " name 
+                                            find=$(sudo samba-tool user list | grep $name)
+                                            if [[ $name = $find ]]
+                                            then                                           
+                                                read -p "Day: " day 
+                                                sudo samba-tool user setexpiry --days=$day $name 
+                                                echo 
+                                            else 
+                                                echo "can't not find user $name"
+                                                echo 
+                                            fi ;;
+                                        "Disable exprise")
+                                            clear
+                                            echo "+===================+"
+                                            echo "|  Disable exprise  |"
+                                            echo "+===================+"
+                                            echo 
+                                            echo "exprise password !!!"
+                                            read -p "username: " name 
+                                            find=$(sudo samba-tool user list | grep $name)
+                                            if [[ $name = $find ]]
+                                            then                                                        
+                                                samba-tool user setexpiry $name --noexpiry
+                                                echo  
+                                            else
+                                                echo "can't not find user $name" 
+                                                echo 
+                                            fi;;
+                                        "Exit")
+                                            Exit;;
+                                    esac
+                                done;;
+                            "Exit")
+                                Exit ;;
+                        esac
+                    done;;
+                "Exit")
+                    exit;;
+            esac  
+        done
+    }
+    User 
+elif [[ $num = 2 ]]
+then
+    clear 
+    select option in 'Computer join domain' Add Move Remove Exit 
+    do 
+        case $option in 
+        "Computer join domain")
+            echo 
+            printf "\nComputer joined !!!\n"
+            echo 
+            sudo samba-tool computer list  
+            echo ;;
+        "Add")
+            echo 
+            read -p "OUname: " ou 
+            list=$(sudo samba-tool ou list)
+            find=$(echo "$ou" $list | awk -F"=" '{print $2}')
+            find1=$(echo $find | awk '{print $1}')
+            if [[ $find1 = $ou ]]
+            then 
+                read -p "computer name: " com 
+                find=$(samba-tool computer list | grep $com)
+                if [[ $find != $com ]]
+                then
+                    sudo samba-tool computer create $com$ --computerou="OU=$ou" 
+                fi 
+            else
+                echo "can't find ou=$find1" 
+                echo 
+            fi;;
+        "Move")
+            echo 
+            read -p "OUname: " ou 
+            list=$(sudo samba-tool ou list)
+            find=$(echo "$ou" $list | awk -F"=" '{print $2}')
+            find1=$(echo $find | awk '{print $1}')
+            if [[ $find1 = $ou ]]
+            then 
+                read -p "computer name: " com 
+                sudo samba-tool computer move $com$ "OU=$ou"
+                echo 
+            else 
+                echo "can't find ou=$ou"
+                echo 
+            fi ;;
+        "Remove")
+            read -p "Enter computer name: " computer
+            sudo samba-tool computer delete $computer ;;
+        "Exit")
+            exit;;
+    esac
+    done 
+elif [[ $num = 3 ]];then
+    clear
+    echo "+===========+"
+    echo "|  Storage  |"
+    echo "+===========+"
+    df -h
+    read -p "Press Enter ..." e 
+    all
+elif [[ $num = 4 ]];then
+    clear 
+    echo "+===========+"
+    echo "|  Service  |"
+    echo "+===========+"
+    systemctl status dhcpd4
+    systemctl status named
+    systemctl status ntpd
+    systemctl status vsftpd
+    systemctl status samba
+    read -p "Press Enter ..." e 
+    all 
+elif [[ $num = 5 ]]
+then
+    clear
+    echo "pleace wait."
+    sleep 0.2
+    clear
+    echo "pleace wait.."
+    sleep 0.2
+    clear
+    echo "pleace wait..."
+    sleep 0.2
+    clear
+    echo "pleace wait.."
+    sleep 0.2
+    clear
+    echo "pleace wait."
+    sleep 0.2
+    clear
+    /usr/bin/server.sh
+    all
+elif [[ -z "$var" ]]
+then
+    clear
+    all
+fi
+    
+}
+all

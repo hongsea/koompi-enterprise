@@ -1,0 +1,41 @@
+## UPDATE KOOMPI OS
+sudo pacman -Syu
+sudo pacman -S glusterfs xfsprogs
+
+## ADD HOST ENTRY <<< EDIT THIS /etc/hosts
+192.168.1.110   cluster0
+192.168.1.112   cluster1
+
+## MAKE DIRECTORY FOR MOUNT GLUSTER VALUME
+mkdir /date/disk1
+chmod 777 /date/disk1 
+
+## MOUNT GLUSTER VALUME ON STARTUP <<< EDIT THIS on /etc/fstab
+/dev/sda3 /gluster                    xfs    defaults        0 0
+reboot
+
+## ENABLE GLUSTER IN STARTUP
+sudo systemctl enable glusterd
+sudo systemctl start glusterd
+
+## ADD POOLS IN GLUSTER
+sudo gluster peer probe cluster1
+sudo gluster peer status 
+sudo gluster pool list
+
+## CREATE  GLUSTERF FORLDER
+sudo mkdir -p /date/disk1/glusterf
+sudo chmod 777 /date/disk1/glusterf
+
+## START GLUSTER VALUME
+sudo gluster volume create koompi_volume1 replica 2 cluster0:/date/disk1/glusterf cluster1:/date/disk1/glusterf
+
+## CREATE VOLUME DIRECTORY FOR MOUNT GLUSTER DATE 
+mkdir /date/disk1/volume
+sudo chmod 777 /date/disk1/volume
+
+## MOUNT GLUSTER DATE 
+cluster0:koompi_volume1 /date/disk1/volume      glusterfs    defaults        0 0
+
+## MOUNT DIRVE
+sudo mount -a
