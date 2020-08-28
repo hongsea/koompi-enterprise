@@ -1,7 +1,7 @@
 ```
-Version : 0.3
+Version : 0.4
 Title : KOOMPI Enterprice
-Update : June-06-29
+Update : August-08-2020
 ```
 ##  Introduction to KOOMPI Enterprise
 
