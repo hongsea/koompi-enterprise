@@ -326,7 +326,7 @@ hosts(){
         sudo chmod 644 /etc/hosts
     else
         sudo cp /etc/hosts /etc/hosts.backup
-        echo "${DNS_DOMAIN}     ${RESOLV_FILE}" >> /etc/hosts
+        echo "${DNS_IPADDRESS}     ${DNS_DOMAIN}" >> /etc/hosts
         sudo chmod 644 /etc/hosts        
     fi
 }
