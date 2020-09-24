@@ -207,7 +207,7 @@ config(){
 [ -z "${SAMBA_DOMAIN}" ]
 [ -z "${SAMBA_ROLE}" ]
 [ -z "${SAMBA_BACKEND}" ]
-    cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
+    cat <<EOF | sudo samba-tool domain provision --host-ip=192.168.1.221 --use-rfc2307 --interactive
 ${SAMBA_REALM}
 ${SAMBA_DOMAIN}
 ${SAMBA_ROLE}
