@@ -149,7 +149,7 @@ CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
 if [[ $CA == c  ]];then
 
 function run_samba_setup(){
-cat <<EOF | sudo samba-tool domain provision --host-ip=${samba_ip} --use-rfc2307 --interactive
+cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
 ${samba_realm}
 ${samba_domain}
 ${SAMBA_ROLE}
