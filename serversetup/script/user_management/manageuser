@@ -1,2 +1,0 @@
-#!/bin/bash
-su -c /usr/bin/usercontrol root

@@ -1,0 +1,11 @@
+bind-tools
+krb5
+ntp 
+openresolv
+samba
+bind 
+dhcp
+vsftpd
+python-dnspython
+net-tools
+inetutils
