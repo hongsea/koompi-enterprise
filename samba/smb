@@ -1,8 +1,15 @@
         server role = active directory domain controller
         server services = s3fs, rpc, nbt, wrepl, ldap, cldap, kdc, drepl, winbindd, ntp_signd, kcc, dnsupdate
         idmap_ldb:use rfc2307 = yes
+
+        idmap config trust-dom:range = 4000000-4999999
+        idmap config trust-dom:backend = rid
+        idmap config ad-dom:range = 2000000-2999999
+        idmap config ad-dom:backend = rid
+        idmap config lovekoompi : backend = ad
+        idmap config lovekoompi:unix_primary_group = yes
         idmap config * : range = 2000-10000
-        template shell = /bin/bash
+        idmap config * : backend = tdb
 
         security = user
         winbind enum users = yes
