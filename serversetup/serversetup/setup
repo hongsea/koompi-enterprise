@@ -30,7 +30,7 @@ NC='\033[0m'
 
 ##check user for run script
 check_root_user(){
-    if [[ $(id -u) == 0 ]];then 
+    if [[ $(id -u) != 0 ]];then 
     echo "This script run as root"
     exit;
     fi 
