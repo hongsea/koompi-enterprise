@@ -26,7 +26,7 @@ function expiry(){
         sudo samba-tool user setexpiry --days=$Day $username  
     fi 
 
-}
+} 
 
 OLDIFS=$IFS
 IFS="	"
