@@ -89,8 +89,7 @@ banner "Configure  BIND Server"
         echo -e "${GREEN}[ Check ]${NC} check bind config backup"
     fi
 
-    sudo cp $(pwd)/bind/empty0.zone /var/named/
-    sudo cp $(pwd)/bind/root.hint /var/named/
+    sudo cp $(pwd)/bind/* /var/named/
     sudo touch /var/lib/samba/private/dns.keytab
     echo -e "${GREEN}[ OK ]${NC} Configure zone"
 
