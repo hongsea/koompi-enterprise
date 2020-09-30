@@ -92,6 +92,8 @@ banner "Configure  BIND Server"
     sudo cp $(pwd)/bind/empty0.zone /var/named/
     sudo cp $(pwd)/bind/root.hint /var/named/
     sudo cp $(pwd)/bind/named.conf /etc/
+    grep -rli IPADDRESS /etc/named.conf | xargs -i@ sed -i s+IPADDRESS+${samba_ip}+g @
+
     sudo touch /var/lib/samba/private/dns.keytab
     echo -e "${GREEN}[ OK ]${NC} Configure zone"
 
@@ -245,10 +247,8 @@ banner "Configure Resolve"
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
     
-    echo "resolv_conf=/etc/resolv.conf" > ${RESOLVCONF_FILE}
-    echo "search_domain ${samba_realm}" >> ${RESOLVCONF_FILE}
-    echo "name_servers 127.0.0.1" >> ${RESOLVCONF_FILE}
-    echo "name_servers 8.8.8.8" >> ${RESOLVCONF_FILE}
+    cp resolvconf/resolvconf.conf /etc/
+    echo "search_domains ${samba_realm}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
     echo "search ${samba_realm}" > ${RESOLV_FILE}
