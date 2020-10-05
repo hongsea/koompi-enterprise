@@ -151,18 +151,29 @@ read -p "$(echo -e "$RED continue or again[C/A]: $NC")" ca
 CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
 if [[ $CA == c  ]];then
 
-function run_samba_setup(){
-cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
-${samba_realm}
-${samba_domain}
-${SAMBA_ROLE}
-${SAMBA_BACKEND}
-EOF
-}
+# function run_samba_setup(){
+
+
+# cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
+# ${samba_realm}
+# ${samba_domain}
+# ${SAMBA_ROLE}
+# ${SAMBA_BACKEND}
+# EOF
+# }
 
 function main(){
     USERNAME=$(id -u -n)
-    run_samba_setup
+
+    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+"\nPlease enter a realm name for the active directory.\nExample:  KOOMPILAB.ORG\n" 8 80 3>&1 1>&2 2>&3)
+    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
+"\nPlease enter an username for your new account\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+    samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+"\nPlease enter your password for administrator user\n" 8 80  3>&1 1>&2 2>&3)
+    sudo sambat-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
+    --realm=$samba_realm --domain=$samba_domain --adminpass=$samba_password
+
     if [[ -f /etc/samba/smb.conf ]];then
         sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.backup
     fi 
@@ -176,9 +187,19 @@ function main(){
     echo -e "\trealm = ${samba_realm}" >> $SMB
     echo -e "\tworkgroup = ${samba_domain}" >> $SMB
     echo "  + Configure path..."
-    read -p "Netlogon Path: " NETLOGONPATH
-    read -p "Home Path: " HOMEPATH
-    read -p "Profiles Path: " PROFILESPATH
+    mkdir /klab
+    mkdir /klab/samba
+
+    NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
+"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 8 80 3>&1 1>&2 2>&3)
+    HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
+"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 8 80 3>&1 1>&2 2>&3)
+    PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
+"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 8 80 3>&1 1>&2 2>&3)
+
+    # read -p "Netlogon Path: " NETLOGONPATH
+    # read -p "Home Path: " HOMEPATH
+    # read -p "Profiles Path: " PROFILESPATH
     echo -e "${GREEN}[ OK ]${NC} Configuring smb.conf..."
 
     #create path directory
