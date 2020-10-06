@@ -129,12 +129,26 @@ banner "Configure SAMBA server"
     sudo systemctl stop samba
     echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
 
-     samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
 "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 8 80 3>&1 1>&2 2>&3)
+
     samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
 "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
-    samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-"\nPlease enter your password for administrator user of active directory server\n" 8 80  3>&1 1>&2 2>&3)
+
+    while true;
+    do
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+    "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
+NO LESS THAN 8 CHARACTERS" 8 80  3>&1 1>&2 2>&3)
+
+        if [[ "${#samba_password}" < 6 ]];
+        then
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
+IT MUST BE NO LESS THAN 8 CHARACTERS" 15 100
+        fi
+    done
+
     samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
 "\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
 
