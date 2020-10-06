@@ -10,7 +10,7 @@ NC='\033[0m'
 
 ##...............BANNER...............
 function banner(){
-echo
+echo 
 BANNER_NAME=$1
 echo -e "${YELLOW}[+] ${BANNER_NAME} "
 echo -e "---------------------------------------------------${NC}"
@@ -19,20 +19,23 @@ echo -e "---------------------------------------------------${NC}"
 ##...............CHECK ROOT USER...............
 
 function check_root_user(){
-    if [[ $(id -u) != 0 ]];then 
-    echo "This script run as root"
-    exit;
-    fi 
+    if [[ $(id -u) != 0 ]];
+    then 
+        echo "This script run as root"
+        exit;
+    fi
 }
 
 ##...............INSTALL PACKAGE BASE...............
 
 function install_package_base(){
+
     banner "Install package dependency"
 
     for PKG in $(cat $(pwd)/package_x86_64)
     do
-        if [[ -n "$(pacman -Q ${PKG})" ]];then 
+        if [[ -n "$(pacman -Q ${PKG})" ]];
+        then 
             echo -e "${GREEN}[ Found ]${NC} Package:${BLUE} ${PKG} ${NC}Installed."
         else 
             echo -e "${GREEN}Installing ${PKG} ${NC}"
@@ -41,6 +44,8 @@ function install_package_base(){
             echo
         fi
     done
+
+    sed -i 'NotifyAccess=ALL' /usr/lib/systemd/system/samba.service
 }
 
 ##...............NTP SERVER FUNCTION SETUP...............
@@ -49,8 +54,10 @@ NTP_FILE=(/etc/ntp.conf)
 function ntp(){
 banner "Configure  NTP Server"
 
-    if [[ -f "${NTP_FILE}" ]];then 
-        if [[ -f /etc/ntp.conf.backup ]];then 
+    if [[ -f "${NTP_FILE}" ]];
+    then 
+        if [[ -f /etc/ntp.conf.backup ]];
+        then 
             echo -e "${GREEN}[ OK ]${NC} ntp config backup"
         else 
             echo -e "${GREEN}[ Check ]${NC} check ntp config backup"
@@ -82,7 +89,8 @@ BIND_FILE=/etc/named.conf
 function bind(){
 banner "Configure  BIND Server"
 
-    if [[ -f ${BIND_FILE}.backup ]];then
+    if [[ -f ${BIND_FILE}.backup ]];
+    then
         echo -e "${GREEN}[ OK ]${NC} bind config backup"
     else
         sudo cp /etc/named.conf /etc/named.conf.backup
@@ -125,10 +133,11 @@ banner "Configure  BIND Server"
 function main(){
     USERNAME=$(id -u -n)
 
-    sudo sambat-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
+    sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
     --realm=$samba_realm --domain=$samba_domain --adminpass=$samba_password
 
-    if [[ -f /etc/samba/smb.conf ]];then
+    if [[ -f /etc/samba/smb.conf ]];
+    then
         sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.backup
     fi 
     
@@ -249,12 +258,16 @@ IT MUST BE NO LESS THAN 8 CHARACTERS" 10 80
 
     #text lower to uppersamba_realm
 
-    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ Linux Disk ]" \
-	--yesno "Your Samba Active Directory Domain Controller Information is\n${RED} Realm:$NC ${samba_realm}\
-${RED} Domain:$NC ${samba_domain}\n${RED} Server Role:${NC} ${SAMBA_ROLE}\n${RED} IP:${NC} ${SAMBA_IP}\n" 10 100);
+    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ Information ]" \
+	--yesno "Your Samba Active Directory Domain Controller Information is\n\n\
+    Realm :    ${samba_realm}\n\
+    Domain:    ${samba_domain}\n\
+    Role  :    DC
+    DNS   :    BIND9_DLZ
+    IP    :    ${samba_ip}" 15 100);
     then
         main
-    else 
+    else
         samba
     fi
 }
