@@ -121,64 +121,6 @@ banner "Configure  BIND Server"
     echo -e "${GREEN}[ OK ] Configure BIND successful. ${NC}"
 }
 
-#..................SAMBA ACTIVE DIRECTORY FUNCTION................
-function samba(){
-banner "Configure SAMBA server"
-
-    sudo systemctl disable samba
-    sudo systemctl stop samba
-    echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
-
-    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-"\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 8 80 3>&1 1>&2 2>&3)
-
-    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-"\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
-
-    while true;
-    do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-    "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
-NO LESS THAN 8 CHARACTERS" 8 80  3>&1 1>&2 2>&3)
-
-        if [[ "${#samba_password}" < 6 ]];
-        then
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
-IT MUST BE NO LESS THAN 8 CHARACTERS" 15 100
-        fi
-    done
-
-    samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
-"\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
-
-
-    sudo rm -rf /etc/samba/smb.conf
-    echo -e "${GREEN}[ OK ]${NC} Delect file config smb.conf"
-
-    #text lower to uppersamba_realm
-
-    echo 
-    echo "........Your input........"
-    echo -e "${RED} Realm:$NC ${samba_realm}" 
-    echo -e "${RED} Domain:$NC ${samba_domain}"
-    echo -e "${RED} Server Role:${NC} ${SAMBA_ROLE}"
-    echo -e "${RED} DNS Backend:${NC} ${SAMBA_BACKEND}"
-
-read -p "$(echo -e "$RED continue or again[C/A]: $NC")" ca
-CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
-if [[ $CA == c  ]];then
-
-# function run_samba_setup(){
-
-
-# cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
-# ${samba_realm}
-# ${samba_domain}
-# ${SAMBA_ROLE}
-# ${SAMBA_BACKEND}
-# EOF
-# }
 
 function main(){
     USERNAME=$(id -u -n)
@@ -203,11 +145,11 @@ function main(){
     mkdir /klab/samba
 
     NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 8 80 3>&1 1>&2 2>&3)
+    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
     HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 8 80 3>&1 1>&2 2>&3)
+"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 10 80 3>&1 1>&2 2>&3)
     PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 8 80 3>&1 1>&2 2>&3)
+"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 10 80 3>&1 1>&2 2>&3)
 
     # read -p "Netlogon Path: " NETLOGONPATH
     # read -p "Home Path: " HOMEPATH
@@ -257,11 +199,90 @@ function main(){
 
     echo -e "${GREEN}[ OK ] Configure SAMBA successful. ${NC}"
 }
-main #<--call man
-else
-    samba #<--call samba
-fi
+
+#..................SAMBA ACTIVE DIRECTORY FUNCTION................
+function samba(){
+banner "Configure SAMBA server"
+
+    sudo systemctl disable samba
+    sudo systemctl stop samba
+    echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
+
+    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+
+    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
+    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+
+    while true;
+    do
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
+NO LESS THAN 8 CHARACTERS" 10 80  3>&1 1>&2 2>&3)
+
+        if [[ "${#samba_password}" < 8 ]];
+        then
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
+IT MUST BE NO LESS THAN 8 CHARACTERS" 10 80
+        else
+            break
+        fi
+    done
+
+
+    while true;
+    do
+        samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
+        "\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+        if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
+        then
+            break
+        else
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
+        fi
+    done
+
+    sudo rm -rf /etc/samba/smb.conf &&
+    echo -e "${GREEN}[ OK ]${NC} Delete file config smb.conf"
+
+    #text lower to uppersamba_realm
+
+    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ Linux Disk ]" \
+	--yesno "Your Samba Active Directory Domain Controller Information is\n${RED} Realm:$NC ${samba_realm}\
+${RED} Domain:$NC ${samba_domain}\n${RED} Server Role:${NC} ${SAMBA_ROLE}\n${RED} IP:${NC} ${SAMBA_IP}\n" 10 100);
+    then
+        main
+    else 
+        samba
+    fi
 }
+    # echo 
+    # echo "........Your input........"
+    # echo -e "${RED} Realm:$NC ${samba_realm}" 
+    # echo -e "${RED} Domain:$NC ${samba_domain}"
+    # echo -e "${RED} Server Role:${NC} ${SAMBA_ROLE}"
+    # echo -e "${RED} DNS Backend:${NC} ${SAMBA_BACKEND}"
+
+
+
+# read -p "$(echo -e "$RED continue or again[C/A]: $NC")" ca
+# CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
+# if [[ $CA == c  ]];then
+
+# function run_samba_setup(){
+
+
+# cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
+# ${samba_realm}
+# ${samba_domain}
+# ${SAMBA_ROLE}
+# ${SAMBA_BACKEND}
+# EOF
+# }
+
+
 # samba #<--call samba
 
 ##...............SETUP KERBEROS SERVER..........................
