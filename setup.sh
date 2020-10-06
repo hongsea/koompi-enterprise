@@ -129,11 +129,15 @@ banner "Configure SAMBA server"
     sudo systemctl stop samba
     echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
 
-    read -p "$(echo -e "$RED Realm [example.com]: $NC")" samba_realm
-    read -p "$(echo -e "$RED Domain [example]: $NC")" samba_domain
-    read -p "$(echo -e "$RED IP Address [192.168.1.1]: $NC")" samba_ip
-    read -p "$(echo -e "$RED Server Role (dc, member, standalone) [dc]: $NC")" SAMBA_ROLE
-    SAMBA_BACKEND="BIND9_DLZ"
+     samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+"\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 8 80 3>&1 1>&2 2>&3)
+    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
+"\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+    samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+"\nPlease enter your password for administrator user of active directory server\n" 8 80  3>&1 1>&2 2>&3)
+    samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
+"\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+
 
     sudo rm -rf /etc/samba/smb.conf
     echo -e "${GREEN}[ OK ]${NC} Delect file config smb.conf"
@@ -165,12 +169,6 @@ if [[ $CA == c  ]];then
 function main(){
     USERNAME=$(id -u -n)
 
-    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  KOOMPILAB.ORG\n" 8 80 3>&1 1>&2 2>&3)
-    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-"\nPlease enter an username for your new account\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
-    samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-"\nPlease enter your password for administrator user\n" 8 80  3>&1 1>&2 2>&3)
     sudo sambat-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
     --realm=$samba_realm --domain=$samba_domain --adminpass=$samba_password
 
