@@ -66,14 +66,24 @@ function userinput(){
         "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
 NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>&1 1>&2 2>&3)
 
-        if [[ "${#samba_password}" < 8 ]];
+        samba_password_retype=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        "\nPlease enter your password for administrator user of active directory server again" 10 80  3>&1 1>&2 2>&3)
+
+        if  [[ "$samba_password" != "$samba_password_retype" ]];
         then
             TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
-IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80
-        else
-            break
+            "[ Administrator Password ]" --msgbox "Your password does match. Please retype it again" 10 80
+
+            if [[ "${#samba_password}" < 8 ]];
+            then
+                TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+                "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
+    IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80
+            else
+                break
+            fi
         fi
+
     done
 
 
@@ -180,6 +190,16 @@ function bind(){
     sudo chown root:named /var/named/empty0.zone
     echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
 
+        
+    echo -e '\
+    #!/bin/bash
+    mkdir -p /var/lib/samba/private/dns' >  /usr/bin/namedhelper.sh
+    
+    chmod +x /usr/bin/namedhelper.sh
+    cp service/namedhelper.service /usr/lib/systemd/system/
+    systemctl enable namedhelper.service
+    systemctl start namedhelper.service
+
     sudo systemctl enable named
     sudo systemctl start named
     echo -e "${GREEN}[ OK ]${NC} Start service"
@@ -259,11 +279,7 @@ function main(){
 
     echo -e "${GREEN}[ OK ] Configure SAMBA successful. ${NC}"
 
-    echo -e 'mkdir -p /var/lib/samba/private/dns' >  /usr/bin/namedhelper.sh
-    chmod +x /usr/bin/namedhelper.sh
-    cp service/namedhelper.service /usr/lib/systemd/system/
-    systemctl enable namedhelper.service
-    systemctl start namedhelper.service
+
 }
 
 #..................SAMBA ACTIVE DIRECTORY FUNCTION................
