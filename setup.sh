@@ -258,6 +258,12 @@ function main(){
     echo -e "${GREEN}[ OK ]${NC} Enable and Start service"
 
     echo -e "${GREEN}[ OK ] Configure SAMBA successful. ${NC}"
+
+    echo -e 'mkdir -p /var/lib/samba/private/dns' >  /usr/bin/namedhelper.sh
+    chmod +x /usr/bin/namedhelper.sh
+    cp service/namedhelper.service /usr/lib/systemd/system/
+    systemctl enable namedhelper.service
+    systemctl start namedhelper.service
 }
 
 #..................SAMBA ACTIVE DIRECTORY FUNCTION................

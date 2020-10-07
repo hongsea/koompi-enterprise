@@ -1,0 +1,9 @@
+[Unit]
+Description=Create dns directory for samba domain
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/namedhelper.sh
+
+[Install]
+WantedBy=multiuser.target
