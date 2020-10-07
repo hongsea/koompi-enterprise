@@ -190,7 +190,8 @@ function bind(){
     echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
 
         
-    echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns' >  /usr/bin/namedhelper.sh
+    echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
+    >  /usr/bin/namedhelper.sh
 
     chmod +x /usr/bin/namedhelper.sh
     cp service/namedhelper.service /usr/lib/systemd/system/
@@ -390,7 +391,8 @@ function dnsbackup(){
     # echo "sudo  samba-tool dns add $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $(hostname).${samba_realm} -U Administrator"
     # echo "sudo host -t PTR ${samba_ip}"
 
-
+    systemctl restart named.service
+    echo -e "${GREEN}[ OK ]${NC} Restart named service"
 
     if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
 	--yesno "Your Samba Active Directory Domain Controller DNS Information is\n
@@ -454,7 +456,7 @@ banner "Test Installing."
     echo "      $HOST2"
     echo "      $HOST3"
 
-    sudo smbclient //localhost/netlogon -U Administrator -c 'ls'
+    echo -e "$samba_password" | sudo smbclient //localhost/netlogon -U Administrator -c 'ls'
     echo -e "${GREEN}[ OK ]${NC} NT authentication"
 
     sudo systemctl restart samba ntpd named
@@ -463,8 +465,7 @@ banner "Test Installing."
     sudo samba-tool user setexpiry Administrator --noexpiry
     echo -e "${GREEN}[ OK ]${NC} Disable Administrator Expriy"
 
-    DOMAIN=$(echo "${samba_realm}" | tr '[:lower:]' '[:upper:]')
-    kinit administrator@${DOMAIN}
+    echo -e "$samba_password" | kinit administrator@${samba_realm}
     echo -e "${GREEN}[ OK ]${NC} Kerberos authentication"
     echo -e "${GREEN}[ OK ] Test successful. $NC"
 }
