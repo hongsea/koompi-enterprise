@@ -45,7 +45,7 @@ function install_package_base(){
         fi
     done
 
-    sed -i 'NotifyAccess=ALL' /usr/lib/systemd/system/samba.service
+    cp service/samba.service /usr/lib/systemd/system/
 }
 
 ##...............NTP SERVER FUNCTION SETUP...............
@@ -150,8 +150,8 @@ function main(){
     echo -e "\trealm = ${samba_realm}" >> $SMB
     echo -e "\tworkgroup = ${samba_domain}" >> $SMB
     echo "  + Configure path..."
-    mkdir /klab
-    mkdir /klab/samba
+    mkdir -p /klab
+    mkdir -p /klab/samba
 
     NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
     "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
@@ -227,13 +227,13 @@ banner "Configure SAMBA server"
     do
         samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
         "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
-NO LESS THAN 8 CHARACTERS" 10 80  3>&1 1>&2 2>&3)
+NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>&1 1>&2 2>&3)
 
         if [[ "${#samba_password}" < 8 ]];
         then
             TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
-IT MUST BE NO LESS THAN 8 CHARACTERS" 10 80
+IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80
         else
             break
         fi
