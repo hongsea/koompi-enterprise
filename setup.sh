@@ -137,7 +137,15 @@ banner "Configure  NTP Server"
 BIND_FILE=/etc/named.conf
 
 function bind(){
-banner "Configure  BIND Server"
+    banner "Configure  BIND Server"
+
+    ##cut ip address on index
+    ip1=$(echo ${samba_ip} | awk -F'.' '{print $1}')
+    ip2=$(echo ${samba_ip} | awk -F'.' '{print $2}')
+    ip3=$(echo ${samba_ip} | awk -F'.' '{print $3}')
+    ip4=$(echo ${samba_ip} | awk -F'.' '{print $4}')
+
+    network="$ip1.$ip2.$ip3.0"
 
     if [[ -f ${BIND_FILE}.backup ]];
     then
@@ -150,7 +158,7 @@ banner "Configure  BIND Server"
     sudo cp $(pwd)/bind/empty0.zone /var/named/
     sudo cp $(pwd)/bind/root.hint /var/named/
     sudo cp $(pwd)/bind/named.conf /etc/
-    grep -rli IPADDRESS /etc/named.conf | xargs -i@ sed -i s+IPADDRESS+${samba_ip}+g @
+    grep -rli IPADDRESS /etc/named.conf | xargs -i@ sed -i s+IPADDRESS+${network}+g @
 
     sudo touch /var/lib/samba/private/dns.keytab
     echo -e "${GREEN}[ OK ]${NC} Configure zone"
@@ -355,13 +363,7 @@ banner "Configure hosts"
 
 #..................SET UP DNS BACKEND WITH SAMBA.................
 function dnsbackup(){
-banner "Samba DNS backend."
-
-    ##cut ip address on index
-    ip1=$(echo ${samba_ip} | awk -F'.' '{print $1}')
-    ip2=$(echo ${samba_ip} | awk -F'.' '{print $2}')
-    ip3=$(echo ${samba_ip} | awk -F'.' '{print $3}')
-    ip4=$(echo ${samba_ip} | awk -F'.' '{print $4}')
+    banner "Samba DNS backend."
 
     # echo
     # echo ".........Your info........."
@@ -377,7 +379,7 @@ banner "Samba DNS backend."
     Realm    :    ${samba_realm} 
     IP       :    $ip3.$ip2.$ip1.in-addr.arpa
     PTR      :    $ip1.$ip2.$ip3.$ip4
-    Zone     :    $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa
+    Zone     :    $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa\
     " 15 100);
     then
         echo -e "$samba_password" | sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
