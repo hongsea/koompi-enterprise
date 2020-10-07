@@ -51,6 +51,56 @@ function install_package_base(){
 ##...............NTP SERVER FUNCTION SETUP...............
 NTP_FILE=(/etc/ntp.conf)
 
+
+function userinput(){
+
+    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+
+    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
+    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+
+    while true;
+    do
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
+NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>&1 1>&2 2>&3)
+
+        if [[ "${#samba_password}" < 8 ]];
+        then
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
+IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80
+        else
+            break
+        fi
+    done
+
+
+    while true;
+    do
+        samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
+        "\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+        if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
+        then
+            break
+        else
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
+        fi
+    done
+
+    NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
+    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
+    HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
+    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 10 80 3>&1 1>&2 2>&3)
+    PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
+    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 10 80 3>&1 1>&2 2>&3)
+
+}
+
+
+
 function ntp(){
 banner "Configure  NTP Server"
 
@@ -153,13 +203,6 @@ function main(){
     mkdir -p /klab
     mkdir -p /klab/samba
 
-    NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
-    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
-    HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 10 80 3>&1 1>&2 2>&3)
-    PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-"\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 10 80 3>&1 1>&2 2>&3)
-
     # read -p "Netlogon Path: " NETLOGONPATH
     # read -p "Home Path: " HOMEPATH
     # read -p "Profiles Path: " PROFILESPATH
@@ -217,51 +260,17 @@ banner "Configure SAMBA server"
     sudo systemctl stop samba
     echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
 
-    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
 
-    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
-
-    while true;
-    do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-        "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
-NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>&1 1>&2 2>&3)
-
-        if [[ "${#samba_password}" < 8 ]];
-        then
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement. \
-IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80
-        else
-            break
-        fi
-    done
-
-
-    while true;
-    do
-        samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
-        "\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
-        if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
-        then
-            break
-        else
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-            "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
-        fi
-    done
 
     sudo rm -rf /etc/samba/smb.conf &&
     echo -e "${GREEN}[ OK ]${NC} Delete file config smb.conf"
 
     #text lower to uppersamba_realm
 
-    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ Information ]" \
-	--yesno "Your Samba Active Directory Domain Controller Information is\n\n\
-    Realm :    ${samba_realm}\n\
-    Domain:    ${samba_domain}\n\
+    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ AD Information ]" \
+	--yesno "Your Samba Active Directory Domain Controller Information is\n
+    Realm :    ${samba_realm}
+    Domain:    ${samba_domain}
     Role  :    DC
     DNS   :    BIND9_DLZ
     IP    :    ${samba_ip}" 15 100);
@@ -354,23 +363,42 @@ banner "Samba DNS backend."
     ip3=$(echo ${samba_ip} | awk -F'.' '{print $3}')
     ip4=$(echo ${samba_ip} | awk -F'.' '{print $4}')
 
-    echo
-    echo ".........Your info........."
-    echo "sudo samba-tool dns zonecreate $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator"
-    echo "sudo  samba-tool dns add $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $(hostname).${samba_realm} -U Administrator"
-    echo "sudo host -t PTR ${samba_ip}"
+    # echo
+    # echo ".........Your info........."
+    # echo "sudo samba-tool dns zonecreate $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator"
+    # echo "sudo  samba-tool dns add $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $(hostname).${samba_realm} -U Administrator"
+    # echo "sudo host -t PTR ${samba_ip}"
 
-    read -p "$(echo -e "Continue or Again [C/A]: ")" dns_ca
-    DNS_CA=$(echo $dns_ca | tr '[:upper:]' '[:lower:]')
 
-    if [[ $DNS_CA == C || $DNS_CA == c ]];then
-        sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
-        sudo  samba-tool dns add ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${samba_realm} -U Administrator
+
+    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
+	--yesno "Your Samba Active Directory Domain Controller DNS Information is\n
+    Hostname :    $(hostname)
+    Realm    :    ${samba_realm} 
+    IP       :    $ip3.$ip2.$ip1.in-addr.arpa
+    PTR      :    $ip1.$ip2.$ip3.$ip4
+    Zone     :    $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa
+    " 15 100);
+    then
+        echo -e "$samba_password" | sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
+        echo -e "$samba_password" | sudo samba-tool dns add ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${samba_realm} -U Administrator
         sudo host -t PTR ${samba_ip}
         echo -e "${GREEN}[ OK ]${NC} Create DNS backend"
     else
-        dnsbackup #<--call dns
+        dnsbackup 
     fi
+
+#     read -p "$(echo -e "Continue or Again [C/A]: ")" dns_ca
+#     DNS_CA=$(echo $dns_ca | tr '[:upper:]' '[:lower:]')
+
+#     if [[ $DNS_CA == C || $DNS_CA == c ]];then
+#         sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
+#         sudo  samba-tool dns add ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${samba_realm} -U Administrator
+#         sudo host -t PTR ${samba_ip}
+#         echo -e "${GREEN}[ OK ]${NC} Create DNS backend"
+#     else
+#         dnsbackup #<--call dns
+#     fi
 }
 
 ##....................SETUP NSSWITCH............................
@@ -550,6 +578,7 @@ fi
 ##call function
 check_root_user
 install_package_base
+userinput
 ntp
 bind
 samba
