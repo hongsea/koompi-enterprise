@@ -340,7 +340,7 @@ function kerberos(){
 banner "Configure KERBEROS server"
 
     sudo cp krb5/krb5.conf /etc/krb5.conf
-    grep -rli SAMBADOMAIN /etc/krb5.conf | xargs -i@ sed -i s+SAMBADOMAIN+${samba_domain}+g @
+    grep -rli SAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+SAMBAREALM+${samba_realm}+g @
     echo -e "${GREEN}[ OK ]${NC} Copy krb5.conf"
     echo -e "${GREEN}[ OK ]${NC} Configure KERBEROS successful. ${NC}"
 }
@@ -353,7 +353,7 @@ banner "Configure Resolve"
     RESOLV_FILE=/etc/resolv.conf
     
     cp resolvconf/resolvconf.conf /etc/
-    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_domain}+g @
+    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm}+g @
     # echo "search_domains=${samba_realm}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
