@@ -353,7 +353,7 @@ banner "Configure Resolve"
     RESOLV_FILE=/etc/resolv.conf
     
     cp resolvconf/resolvconf.conf /etc/
-    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm}+g @
+    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm}+g @    
     # echo "search_domains=${samba_realm}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
