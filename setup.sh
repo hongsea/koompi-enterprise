@@ -93,7 +93,7 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>
     while true;
     do
         samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
-        "\nPlease enter an IP for your new active directory server\nExample:  KOOMPILAB\n" 8 80 3>&1 1>&2 2>&3)
+        "\nPlease enter an IP for your new active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
         if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
             break
@@ -375,6 +375,8 @@ banner "Configure Resolve"
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 
+    echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+
 }
 
 ##................SETUP HOST......................
@@ -408,7 +410,7 @@ function dnsbackup(){
 
     if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
 	--yesno "Your Samba Active Directory Domain Controller DNS Information is\n
-    Hostname :    $(HOSTNAME)
+    Hostname :    $HOSTNAME
     Realm    :    ${samba_realm,,} 
     IP       :    $ip3.$ip2.$ip1.in-addr.arpa
     PTR      :    $ip1.$ip2.$ip3.$ip4
