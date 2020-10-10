@@ -54,11 +54,15 @@ NTP_FILE=(/etc/ntp.conf)
 
 function userinput(){
 
+    samba_hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --inputbox \
+    "\nPlease enter a suitable new hostname for the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
     samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
     "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+    samba_realm=${samba_realm^^}
 
     samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
     "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+    samba_domain=${samba_domain^^}
 
     while true;
     do
@@ -101,14 +105,20 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>
 
     NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
     "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
+
     HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
     "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 10 80 3>&1 1>&2 2>&3)
+
     PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
     "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 10 80 3>&1 1>&2 2>&3)
 
 }
 
-
+function sethostname(){
+    sudo hostnamectl set-hostname $samba_hostname
+    sudo hostname $samba_hostname
+    HOSTNAME=$samba_hostname
+}
 
 function ntp(){
 banner "Configure  NTP Server"
@@ -353,11 +363,11 @@ banner "Configure Resolve"
     RESOLV_FILE=/etc/resolv.conf
     
     cp resolvconf/resolvconf.conf /etc/
-    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm}+g @    
+    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
     # echo "search_domains=${samba_realm}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
-    echo "search ${samba_realm}" > ${RESOLV_FILE}
+    echo "search ${samba_realm,,}" > ${RESOLV_FILE}
     echo "nameserver 127.0.0.1" >> ${RESOLV_FILE}
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
@@ -378,7 +388,7 @@ banner "Configure hosts"
         echo -e "${GREEN}[ Check ]${NC} Check hosts backup"
     fi
 
-    echo "${samba_ip}     ${samba_realm}" >> /etc/hosts
+    echo "${samba_ip}     ${samba_realm,,}" >> /etc/hosts
     echo -e "${GREEN}[ OK ]${NC} Configure hosts"
 }
 
@@ -398,15 +408,15 @@ function dnsbackup(){
 
     if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
 	--yesno "Your Samba Active Directory Domain Controller DNS Information is\n
-    Hostname :    $(hostname)
-    Realm    :    ${samba_realm} 
+    Hostname :    $(HOSTNAME)
+    Realm    :    ${samba_realm,,} 
     IP       :    $ip3.$ip2.$ip1.in-addr.arpa
     PTR      :    $ip1.$ip2.$ip3.$ip4
-    Zone     :    $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa\
+    Zone     :    $(HOSTNAME).${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa\
     " 15 100);
     then
-        echo -e "$samba_password" | sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
-        echo -e "$samba_password" | sudo samba-tool dns add ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${samba_realm} -U Administrator
+        echo -e "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
+        echo -e "$samba_password" | sudo samba-tool dns add ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${HOSTNAME}.${samba_realm,,} -U Administrator
         sudo host -t PTR ${samba_ip}
         echo -e "${GREEN}[ OK ]${NC} Create DNS backend"
     else
@@ -445,13 +455,13 @@ banner "Test Installing."
 
     echo -e "${GREEN}[ OK ]${NC} Restarting service samba and ntp"
 
-    echo "  + host -t SRV _ldap._tcp.$samba_realm."
-    echo "  + host -t SRV _kerberos._udp.$samba_realm."
-    echo "  + host -t A $samba_realm."
+    echo "  + host -t SRV _ldap._tcp.${samba_realm,,}."
+    echo "  + host -t SRV _kerberos._udp.${samba_realm,,}."
+    echo "  + host -t A ${samba_realm,,}."
 
-    HOST1=$(host -t SRV _ldap._tcp.$samba_realm.)
-    HOST2=$(host -t SRV _kerberos._udp.$samba_realm.)
-    HOST3=$(host -t A $samba_realm.)
+    HOST1=$(host -t SRV _ldap._tcp.${samba_realm,,}.)
+    HOST2=$(host -t SRV _kerberos._udp.${samba_realm,,}.)
+    HOST3=$(host -t A ${samba_realm,,}.)
 
     echo "  + Receive output"
     echo "      $HOST1"
@@ -476,13 +486,13 @@ banner "Test Installing."
 function user_management(){
 banner "User management."
 
-    sudo samba-tool group add network --gid-number=90 --nis-domain=$samba_realm
-    sudo samba-tool group add video --gid-number=986 --nis-domain=$samba_realm
-    sudo samba-tool group add storage --gid-number=988 --nis-domain=$samba_realm
-    sudo samba-tool group add lp --gid-number=991 --nis-domain=$samba_realm
-    sudo samba-tool group add audio --gid-number=995 --nis-domain=$samba_realm
-    sudo samba-tool group add wheel --gid-number=998 --nis-domain=$samba_realm
-    sudo samba-tool group add power --gid-number=98 --nis-domain=$samba_realm
+    sudo samba-tool group add network --gid-number=90 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add video --gid-number=986 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add storage --gid-number=988 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add lp --gid-number=991 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add audio --gid-number=995 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add wheel --gid-number=998 --nis-domain=${samba_realm,,}
+    sudo samba-tool group add power --gid-number=98 --nis-domain=${samba_realm,,}
     echo -e "${GREEN}[ OK ]${NC} Creating group"
 
     sudo samba-tool domain passwordsettings set --complexity=off
@@ -603,6 +613,7 @@ fi
 check_root_user
 install_package_base
 userinput
+sethostname
 ntp
 bind
 samba
