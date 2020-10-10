@@ -228,7 +228,7 @@ function main(){
     fi 
     
     SMB=/etc/samba/smb.conf
-    HOSTNAME=$(echo "$(hostname)" | tr '[:lower:]' '[:upper:]')
+    # HOSTNAME=$(echo "$(hostname)" | tr '[:lower:]' '[:upper:]')
     sudo chown -R $USERNAME:users $SMB
     echo -e "# Global parameters" > $SMB
     echo -e "[global]" >> $SMB
@@ -376,7 +376,6 @@ banner "Configure Resolve"
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 
     echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
-
 }
 
 ##................SETUP HOST......................
@@ -414,7 +413,7 @@ function dnsbackup(){
     Realm    :    ${samba_realm,,} 
     IP       :    $ip3.$ip2.$ip1.in-addr.arpa
     PTR      :    $ip1.$ip2.$ip3.$ip4
-    Zone     :    $(HOSTNAME).${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa\
+    Zone     :    $HOSTNAME.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa\
     " 15 100);
     then
         echo -e "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
