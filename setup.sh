@@ -182,6 +182,8 @@ function inputcheck(){
 
 function install_package_base(){
 
+
+    sudo pacman -S pacman-contrib --noconfirm
     progress=6
 
     for PKG in $(cat $(pwd)/package_x86_64)
