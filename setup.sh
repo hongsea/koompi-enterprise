@@ -10,67 +10,61 @@ NC='\033[0m'
 
 ##...............BANNER...............
 function banner(){
-echo 
-BANNER_NAME=$1
-echo -e "${YELLOW}[+] ${BANNER_NAME} "
-echo -e "---------------------------------------------------${NC}"
+    echo -e "XXX\n$1\n$2\nXXX"
 }
  
 ##...............CHECK ROOT USER...............
 
-function check_root_user(){
+check_root(){
     if [[ $(id -u) != 0 ]];
     then 
-        echo "This script run as root"
+        echo -e "${RED}[ FAILED ]${NC} Root Permission Requirement Failed"
         exit;
-    fi
+    fi 
 }
 
-##...............INSTALL PACKAGE BASE...............
+createlog(){
 
-function install_package_base(){
+    NOW=$(date +"%m-%d-%Y-%T")
+    mkdir -p /klab/
+    mkdir -p /klab/samba
+    mkdir -p /klab/samba/log
+    LOG="/klab/samba/log/clientlog-$NOW"
 
-    banner "Install package dependency"
-
-    for PKG in $(cat $(pwd)/package_x86_64)
-    do
-        if [[ -n "$(pacman -Q ${PKG})" ]];
-        then 
-            echo -e "${GREEN}[ Found ]${NC} Package:${BLUE} ${PKG} ${NC}Installed."
-        else 
-            echo -e "${GREEN}Installing ${PKG} ${NC}"
-            sudo pacman -S ${PKG} --noconfirm
-            echo -e "${GREEN}[ OK ]${NC} Package:${BLUE} ${PKG} ${NC}Installed successfull."
-            echo
-        fi
-    done
-
-    cp service/samba.service /usr/lib/systemd/system/
+    rm -rf $LOG
 }
 
-##...............NTP SERVER FUNCTION SETUP...............
-NTP_FILE=(/etc/ntp.conf)
+function sethostname(){
 
+    samba_hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]" --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter a suitable new hostname for the active directory server.\n\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
+    sudo hostnamectl set-hostname $samba_hostname
+    HOSTNAME=$samba_hostname
 
-function userinput(){
+}
 
-    samba_hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --inputbox \
-    "\nPlease enter a suitable new hostname for the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
-    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+function sambainput(){
+
+    samba_realm=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter a realm name for the active directory server.\n\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+    
+    secondlvl_domain=$(echo $samba_realm |awk -F'.' '{printf $NF}')
+    samba_domain=${samba_realm//".$secondlvl_domain"}
     samba_realm=${samba_realm^^}
-
-    samba_domain=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
     samba_domain=${samba_domain^^}
+
 
     while true;
     do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --backtitle "Samba Active Directory Domain Controller" \
+        --nocancel --ok-button Submit --passwordbox \
         "\nPlease enter your password for administrator user of active directory server\nNote:  IT MUST BE \
 NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>&1 1>&2 2>&3)
 
-        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]"  --backtitle "Samba Active Directory Domain Controller" \
+        --nocancel --ok-button Submit  --passwordbox \
         "\nPlease enter your password for administrator user of active directory server again" 10 80  3>&1 1>&2 2>&3)
 
         if  [[ "$samba_password" != "$samba_password_again" ]];
@@ -86,42 +80,134 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" 10 80  3>
         else
                 break
         fi
-
     done
 
 
     while true;
     do
-        samba_ip=$(TERM=ansi whiptail --clear --title "[ IP for Domain ]" --inputbox \
+        samba_ip=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller"  --title "[ IP for Domain ]" \
+        --nocancel --ok-button Submit  --inputbox \
         "\nPlease enter an IP for your new active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
         if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
             break
         else
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-            "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ IP for Domain ]" \
+            --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
+        fi
+    done
+}
+
+function pathinput(){
+
+    NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit  --inputbox \
+    "\nPlease enter a path for Samba User Netlogon for the active directory.\n\nDefault:  /klab/samba/netlogon\n" 10 100 3>&1 1>&2 2>&3)
+
+    HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit  --inputbox \
+    "\nPlease enter a path for Samba User Home for the active directory.\n\nDefault:  /klab/samba/home\n" 10 100 3>&1 1>&2 2>&3)
+
+    PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit  --inputbox \
+    "\nPlease enter a path for Samba User Profiles for the active directory.\n\nDefault:  /klab/samba/profiles\n" 10 100 3>&1 1>&2 2>&3)
+
+    if [ -z "$NETLOGONPATH" ]
+    then
+        NETLOGONPATH='/klab/samba/netlogon'
+    fi
+    if [ -z "$HOMEPATH" ]
+    then
+        HOMEPATH='/klab/samba/home'
+    fi
+    if [ -z "$PROFILESFATH" ]
+    then
+        PROFILESPATH='/klab/samba/profiles'
+    fi
+
+}
+
+function inputcheck(){
+
+    ##cut ip address on index
+    ip1=$(echo ${samba_ip} | awk -F'.' '{print $1}')
+    ip2=$(echo ${samba_ip} | awk -F'.' '{print $2}')
+    ip3=$(echo ${samba_ip} | awk -F'.' '{print $3}')
+    ip4=$(echo ${samba_ip} | awk -F'.' '{print $4}')
+
+    while true;
+    do
+        if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ AD Information ]" \
+        --yesno "Your Samba Active Directory Domain Controller Information is\n
+    Realm :    ${samba_realm}
+    Domain:    ${samba_domain}
+    Role  :    DC
+    DNS   :    BIND9_DLZ
+    IP    :    ${samba_ip}" 15 100);
+        then
+            if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
+            --yesno "Your Samba Active Directory Domain Controller DNS Information is\n
+    Hostname :    $HOSTNAME
+    Realm    :    ${samba_realm,,} 
+    IP       :    $ip3.$ip2.$ip1.in-addr.arpa
+    PTR      :    $ip4
+    Zone     :    $HOSTNAME.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa" 15 100);
+            then
+                break
+            else
+                sethostname
+                sambainput
+            fi
+        sambainput
         fi
     done
 
-    NETLOGONPATH=$(TERM=ansi whiptail --clear --title "[ NETLOGON Selection ]" --inputbox \
-    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/netlogon\n" 10 80 3>&1 1>&2 2>&3)
-
-    HOMEPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/home\n" 10 80 3>&1 1>&2 2>&3)
-
-    PROFILESPATH=$(TERM=ansi whiptail --clear --title "[ HOME Selection ]" --inputbox \
-    "\nPlease enter a realm name for the active directory.\nExample:  /klab/samba/profiles\n" 10 80 3>&1 1>&2 2>&3)
-
+    while true;
+    do
+        if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ Path Information ]" \
+        --yesno "Your Samba Active Directory Domain Controller Path Information is\n
+    Netlogon    :    ${NETLOGONPATH}
+    Home        :    ${HOMEPATH}
+    Profiles    :    ${PROFILESPATH}" 15 100);
+        then
+            break
+        else
+            pathinput
+        fi
+    done
+    
 }
 
-function sethostname(){
-    sudo hostnamectl set-hostname $samba_hostname
-    sudo hostname $samba_hostname
-    HOSTNAME=$samba_hostname
+##...............INSTALL PACKAGE BASE...............
+
+function install_package_base(){
+
+
+    sudo pacman -S pacman-contrib --noconfirm
+    progress=6
+
+    for PKG in $(cat $(pwd)/package_x86_64)
+    do
+        progress=$(echo $(( $progress+2 )))
+        banner "$progress" "Installing package $PKG..."
+
+        if [[ -n "$(pacman -Qs ${PKG})" ]];
+        then 
+            echo -e "${GREEN}[ Found ]${NC} Package:${BLUE} ${PKG} ${NC}Installed." >> $LOG
+        else 
+            echo -e "${GREEN}Installing ${PKG} ${NC}" >> $LOG
+            sudo pacman -S $(pactree -alsu $PKG) --needed --noconfirm 2>/dev/null >> $LOG
+            echo -e "${GREEN}[ OK ]${NC} Package:${BLUE} ${PKG} ${NC}Installed successfull." >> $LOG
+        fi
+    done
+
+    cp service/samba.service /usr/lib/systemd/system/
 }
+
+##...............NTP SERVER FUNCTION SETUP...............
+NTP_FILE=(/etc/ntp.conf)
 
 function ntp(){
-banner "Configure  NTP Server"
 
     if [[ -f "${NTP_FILE}" ]];
     then 
@@ -153,16 +239,10 @@ banner "Configure  NTP Server"
 }
 
 ##..................BIND SERVER FUNCTION SETUP...............
-BIND_FILE=/etc/named.conf
 
 function bind(){
-    banner "Configure  BIND Server"
 
-    ##cut ip address on index
-    ip1=$(echo ${samba_ip} | awk -F'.' '{print $1}')
-    ip2=$(echo ${samba_ip} | awk -F'.' '{print $2}')
-    ip3=$(echo ${samba_ip} | awk -F'.' '{print $3}')
-    ip4=$(echo ${samba_ip} | awk -F'.' '{print $4}')
+    BIND_FILE=/etc/named.conf
 
     network="$ip1.$ip2.$ip3.0"
 
@@ -203,6 +283,8 @@ function bind(){
     echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
     >  /usr/bin/namedhelper.sh
 
+    echo -e "${GREEN}[ OK ]${NC} Created Named Helper Service"
+
     chmod +x /usr/bin/namedhelper.sh
     cp service/namedhelper.service /usr/lib/systemd/system/
     systemctl enable namedhelper.service
@@ -215,8 +297,16 @@ function bind(){
     echo -e "${GREEN}[ OK ] Configure BIND successful. ${NC}"
 }
 
+#..................SAMBA ACTIVE DIRECTORY FUNCTION................
+function samba(){
 
-function main(){
+    sudo systemctl disable samba
+    sudo systemctl stop samba
+    echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
+
+    sudo rm -rf /etc/samba/smb.conf &&
+    echo -e "${GREEN}[ OK ]${NC} Delete file config smb.conf"
+
     USERNAME=$(id -u -n)
 
     sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
@@ -228,7 +318,6 @@ function main(){
     fi 
     
     SMB=/etc/samba/smb.conf
-    # HOSTNAME=$(echo "$(hostname)" | tr '[:lower:]' '[:upper:]')
     sudo chown -R $USERNAME:users $SMB
     echo -e "# Global parameters" > $SMB
     echo -e "[global]" >> $SMB
@@ -236,12 +325,7 @@ function main(){
     echo -e "\trealm = ${samba_realm}" >> $SMB
     echo -e "\tworkgroup = ${samba_domain}" >> $SMB
     echo "  + Configure path..."
-    mkdir -p /klab
-    mkdir -p /klab/samba
 
-    # read -p "Netlogon Path: " NETLOGONPATH
-    # read -p "Home Path: " HOMEPATH
-    # read -p "Profiles Path: " PROFILESPATH
     echo -e "${GREEN}[ OK ]${NC} Configuring smb.conf..."
 
     #create path directory
@@ -260,7 +344,7 @@ function main(){
     echo -e "${GREEN}[ OK ]${NC} Set permisson"
 
     grep -rli SMBNE $(pwd)/samba/smb | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
-    grep -rli SMBHO $(pwd)/samba/smb | xargs -i@ sed -i s+SMBHO+$HOMEPATH+g @
+    grep -rli SMBHO $(pwd)/samba/smb | xargs -i@ sed -i s+SMBHO+"$HOMEPATH/%S"+g @
     grep -rli SMPRO $(pwd)/samba/smb | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
     cat $(pwd)/samba/smb >> $SMB
     sudo chown -R root:root $SMB
@@ -286,68 +370,10 @@ function main(){
     echo -e "${GREEN}[ OK ]${NC} Enable and Start service"
 
     echo -e "${GREEN}[ OK ] Configure SAMBA successful. ${NC}"
-
-
 }
-
-#..................SAMBA ACTIVE DIRECTORY FUNCTION................
-function samba(){
-banner "Configure SAMBA server"
-
-    sudo systemctl disable samba
-    sudo systemctl stop samba
-    echo -e "${GREEN}[ OK ]${NC} Disable and stop service"
-
-
-
-    sudo rm -rf /etc/samba/smb.conf &&
-    echo -e "${GREEN}[ OK ]${NC} Delete file config smb.conf"
-
-    #text lower to uppersamba_realm
-
-    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ AD Information ]" \
-	--yesno "Your Samba Active Directory Domain Controller Information is\n
-    Realm :    ${samba_realm}
-    Domain:    ${samba_domain}
-    Role  :    DC
-    DNS   :    BIND9_DLZ
-    IP    :    ${samba_ip}" 15 100);
-    then
-        main
-    else
-        samba
-    fi
-}
-    # echo 
-    # echo "........Your input........"
-    # echo -e "${RED} Realm:$NC ${samba_realm}" 
-    # echo -e "${RED} Domain:$NC ${samba_domain}"
-    # echo -e "${RED} Server Role:${NC} ${SAMBA_ROLE}"
-    # echo -e "${RED} DNS Backend:${NC} ${SAMBA_BACKEND}"
-
-
-
-# read -p "$(echo -e "$RED continue or again[C/A]: $NC")" ca
-# CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
-# if [[ $CA == c  ]];then
-
-# function run_samba_setup(){
-
-
-# cat <<EOF | sudo samba-tool domain provision --use-rfc2307 --interactive
-# ${samba_realm}
-# ${samba_domain}
-# ${SAMBA_ROLE}
-# ${SAMBA_BACKEND}
-# EOF
-# }
-
-
-# samba #<--call samba
 
 ##...............SETUP KERBEROS SERVER..........................
 function kerberos(){
-banner "Configure KERBEROS server"
 
     sudo cp krb5/krb5.conf /etc/krb5.conf
     grep -rli SAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+SAMBAREALM+${samba_realm}+g @
@@ -357,14 +383,12 @@ banner "Configure KERBEROS server"
 
 ##................SETUP RESOLVE..................
 function resolvs(){
-banner "Configure Resolve"
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
     
     cp resolvconf/resolvconf.conf /etc/
     grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
-    # echo "search_domains=${samba_realm}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
     echo "search ${samba_realm,,}" > ${RESOLV_FILE}
@@ -373,14 +397,16 @@ banner "Configure Resolve"
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolve"
 
-    echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 
     echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    resolvconf -u
+    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
+
+    echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
 
 ##................SETUP HOST......................
 function hosts(){
-banner "Configure hosts"
 
     if [[ -f "/etc/hosts.backup" ]]; then
         echo -e "${GREEN}[ OK ]${NC} Hosts backup"
@@ -393,53 +419,20 @@ banner "Configure hosts"
     echo -e "${GREEN}[ OK ]${NC} Configure hosts"
 }
 
-
 #..................SET UP DNS BACKEND WITH SAMBA.................
 function dnsbackup(){
-    banner "Samba DNS backend."
-
-    # echo
-    # echo ".........Your info........."
-    # echo "sudo samba-tool dns zonecreate $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator"
-    # echo "sudo  samba-tool dns add $(hostname).${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR $(hostname).${samba_realm} -U Administrator"
-    # echo "sudo host -t PTR ${samba_ip}"
 
     systemctl restart named.service
-    echo -e "${GREEN}[ OK ]${NC} Restart named service"
-
-    if (TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title "[ DNS Information ]" \
-	--yesno "Your Samba Active Directory Domain Controller DNS Information is\n
-    Hostname :    $HOSTNAME
-    Realm    :    ${samba_realm,,} 
-    IP       :    $ip3.$ip2.$ip1.in-addr.arpa
-    PTR      :    $ip1.$ip2.$ip3.$ip4
-    Zone     :    $HOSTNAME.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa\
-    " 15 100);
-    then
-        echo -e "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
-        echo -e "$samba_password" | sudo samba-tool dns add ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${HOSTNAME}.${samba_realm,,} -U Administrator
-        sudo host -t PTR ${samba_ip}
-        echo -e "${GREEN}[ OK ]${NC} Create DNS backend"
-    else
-        dnsbackup 
-    fi
-
-#     read -p "$(echo -e "Continue or Again [C/A]: ")" dns_ca
-#     DNS_CA=$(echo $dns_ca | tr '[:upper:]' '[:lower:]')
-
-#     if [[ $DNS_CA == C || $DNS_CA == c ]];then
-#         sudo samba-tool dns zonecreate ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
-#         sudo  samba-tool dns add ${samba_realm} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${samba_realm} -U Administrator
-#         sudo host -t PTR ${samba_ip}
-#         echo -e "${GREEN}[ OK ]${NC} Create DNS backend"
-#     else
-#         dnsbackup #<--call dns
-#     fi
+    echo -e "${GREEN}[ OK ]${NC} Restart named service" >> $LOG
+    echo "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
+    echo "$samba_password" | sudo samba-tool dns add ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${HOSTNAME}.${samba_realm,,} -U Administrator
+    sudo host -t PTR ${samba_ip} >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Create DNS backend" >> $LOG
+    
 }
 
 ##....................SETUP NSSWITCH............................
 function nsswitch(){
-banner "Configure nsswitch."
 
     sudo cp $(pwd)/nsswitch/nsswitch.conf /etc/nsswitch.conf
     echo -e "${GREEN}[ OK ]${NC} Configuring nsswithch"
@@ -448,44 +441,43 @@ banner "Configure nsswitch."
 
 ##...................TESTING INSTALLATION..........................
 function testinstall(){
-banner "Test Installing."
 
-    sudo systemctl restart samba
-    sudo systemctl enable named
-    sudo systemctl start named
 
-    echo -e "${GREEN}[ OK ]${NC} Restarting service samba and ntp"
+    banner "90" "Attempt to Start Samba Services"
+    sudo systemctl restart samba &>> $LOG
+    sudo systemctl enable named &>> $LOG
+    sudo systemctl start named &>> $LOG
 
-    echo "  + host -t SRV _ldap._tcp.${samba_realm,,}."
-    echo "  + host -t SRV _kerberos._udp.${samba_realm,,}."
-    echo "  + host -t A ${samba_realm,,}."
+    echo -e "${GREEN}[ OK ]${NC} Restarting service samba and ntp"  >> $LOG
+
+    echo "  + host -t SRV _ldap._tcp.${samba_realm,,}." >> $LOG
+    echo "  + host -t SRV _kerberos._udp.${samba_realm,,}." >> $LOG
+    echo "  + host -t A ${samba_realm,,}." >> $LOG
+
+    banner "95" "Attempt to Invoke DNS Registry"
 
     HOST1=$(host -t SRV _ldap._tcp.${samba_realm,,}.)
     HOST2=$(host -t SRV _kerberos._udp.${samba_realm,,}.)
     HOST3=$(host -t A ${samba_realm,,}.)
 
-    echo "  + Receive output"
-    echo "      $HOST1"
-    echo "      $HOST2"
-    echo "      $HOST3"
+    echo -e "Receive output\n$HOST1\n$HOST2\n$HOST3" >> $LOG
 
-    echo -e "$samba_password" | sudo smbclient //localhost/netlogon -U Administrator -c 'ls'
-    echo -e "${GREEN}[ OK ]${NC} NT authentication"
+    echo -e "$samba_password" | sudo smbclient //localhost/netlogon -U Administrator -c 'ls' &>> $LOG
+    echo -e "${GREEN}[ OK ]${NC} NT authentication"  >> $LOG
 
-    sudo systemctl restart samba ntpd named
-    echo -e "${GREEN}[ OK ]${NC} Restart service"
+    sudo systemctl restart samba ntpd named &>> $LOG 
+    echo -e "${GREEN}[ OK ]${NC} Restart service" >> $LOG
 
-    sudo samba-tool user setexpiry Administrator --noexpiry
-    echo -e "${GREEN}[ OK ]${NC} Disable Administrator Expriy"
+    sudo samba-tool user setexpiry Administrator --noexpiry &>> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Disable Administrator Expriy" >> $LOG
 
-    echo -e "$samba_password" | kinit administrator@${samba_realm}
-    echo -e "${GREEN}[ OK ]${NC} Kerberos authentication"
-    echo -e "${GREEN}[ OK ] Test successful. $NC"
+    echo -e "$samba_password" | kinit administrator@${samba_realm} &>> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Kerberos authentication" >> $LOG
+    echo -e "${GREEN}[ OK ] Test successful. $NC" >> $LOG
 }
 
 #.................USER AND GROUP MANAGEMENT............................
 function user_management(){
-banner "User management."
 
     sudo samba-tool group add network --gid-number=90 --nis-domain=${samba_realm,,}
     sudo samba-tool group add video --gid-number=986 --nis-domain=${samba_realm,,}
@@ -611,17 +603,40 @@ fi
 }
 
 ##call function
-check_root_user
-install_package_base
-userinput
+check_root
+createlog
 sethostname
-ntp
-bind
-samba
-kerberos
-resolvs
-hosts
-dnsbackup
-nsswitch
-testinstall
-user_management
+sambainput
+pathinput
+inputcheck
+
+
+{
+    banner "6" "Installing necessary packages."
+    install_package_base || echo -e "${RED}[ FAILED ]${NC} Installing Packages Failed. Please Check log in $LOG" 
+    banner "28" "Configuring Network Time Server"
+    ntp &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Network Time Server Failed. Please Check log in $LOG"
+    banner "30" "Configuring Dynamic Name Server"
+    bind &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring BIND DNS Failed. Please Check log in $LOG"
+    banner "45" "Configuring Samba Active Directory Server"
+    samba &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Failed. Please Check log in $LOG" 
+    banner "50" "Configuring Keberos Network Authenticator"
+    kerberos >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
+    banner "60" "Configuring Local DNS for Server Usage"
+    resolvs  >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Resolv Failed. Please Check log in $LOG" 
+    banner "70" "Registering Samba Domain Name in Local"
+    hosts >> $LOG || echo -e "${RED}[ FAILED ]${NC} Registering Host Failed. Please Check log in $LOG" 
+    banner "75" "Registering Samba Domain Name In Network"
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+    dnsbackup
+    #&>> $LOG  || echo -e "${RED}[ FAILED ]${NC} Registering Samba Failed. Please Check log in $LOG" 
+{
+    banner "85" "Configuring Name Service Swtich Server "   
+    nsswitch &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Name Service Switch Failed. Please Check log in $LOG" 
+    banner "90" "Attempts to Implement Active Directory Server"
+    testinstall || echo -e "${RED}[ FAILED ]${NC} Attempt to Implement Active Directory Server Failed. Please Check log in $LOG" 
+    banner "100" "Installing User Management"
+    user_management >> $LOG || echo -e "${RED}[ FAILED ]${NC} Installing User Management Failed. Please Check log in $LOG" 
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+
+clear
