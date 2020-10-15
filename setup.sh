@@ -196,7 +196,7 @@ function install_package_base(){
             echo -e "${GREEN}[ Found ]${NC} Package:${BLUE} ${PKG} ${NC}Installed." >> $LOG
         else 
             echo -e "${GREEN}Installing ${PKG} ${NC}" >> $LOG
-            sudo pacman -S ${PKG} --noconfirm 2>/dev/null >> $LOG
+            sudo pacman -S $(pactree -alsu $PKG) --noconfirm 2>/dev/null >> $LOG
             echo -e "${GREEN}[ OK ]${NC} Package:${BLUE} ${PKG} ${NC}Installed successfull." >> $LOG
         fi
     done
