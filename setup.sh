@@ -342,7 +342,7 @@ function samba(){
     echo -e "${GREEN}[ OK ]${NC} Set permisson"
 
     grep -rli SMBNE $(pwd)/samba/smb | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
-    grep -rli SMBHO $(pwd)/samba/smb | xargs -i@ sed -i s+SMBHO+$HOMEPATH+g @
+    grep -rli SMBHO $(pwd)/samba/smb | xargs -i@ sed -i s+SMBHO+"$HOMEPATH/%S"+g @
     grep -rli SMPRO $(pwd)/samba/smb | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
     cat $(pwd)/samba/smb >> $SMB
     sudo chown -R root:root $SMB
@@ -397,6 +397,7 @@ function resolvs(){
 
 
     echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    resolvconf -u
     echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
@@ -421,11 +422,11 @@ function dnsbackup(){
 
     systemctl restart named.service
     echo -e "${GREEN}[ OK ]${NC} Restart named service" >> $LOG
-    echo "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator 
+    echo "$samba_password" | sudo samba-tool dns zonecreate ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa -U Administrator
     echo "$samba_password" | sudo samba-tool dns add ${HOSTNAME}.${samba_realm,,} $ip3.$ip2.$ip1.in-addr.arpa $ip4 PTR ${HOSTNAME}.${samba_realm,,} -U Administrator
     sudo host -t PTR ${samba_ip} >> $LOG
     echo -e "${GREEN}[ OK ]${NC} Create DNS backend" >> $LOG
-
+    
 }
 
 ##....................SETUP NSSWITCH............................
