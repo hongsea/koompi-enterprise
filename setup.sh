@@ -387,6 +387,8 @@ function resolvs(){
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
     
+    rm -rf $RESOLV_FILE
+
     cp resolvconf/resolvconf.conf /etc/
     grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
