@@ -411,7 +411,6 @@ function resolvs(){
     echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
     systemctl restart NetworkManager
     rm -rf $RESOLV_FILE
-    resolvconf -u
     echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
 
@@ -424,6 +423,8 @@ function resolvs(){
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolve"
+
+    resolvconf -u
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
