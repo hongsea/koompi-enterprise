@@ -15,15 +15,32 @@ function banner(){
  
 ##...............CHECK ROOT USER...............
 
+check_internet(){
+
+	if !(ping -q -c 1 -W 1 google.com &>/dev/null);
+	then
+		echo -e "${RED}[ FAILED ]${NC} Internet Connection Failed Failed"
+        exit;
+	fi
+
+}
+
+
 check_root(){
+
     if [[ $(id -u) != 0 ]];
     then 
         echo -e "${RED}[ FAILED ]${NC} Root Permission Requirement Failed"
         exit;
-    fi 
+    fi
+
 }
 
 createlog(){
+
+    sudo timedatectl set-timezone Asia/Phnom_Penh
+    sudo timedatectl set-ntp 1
+    sudo timedatectl
 
     NOW=$(date +"%m-%d-%Y-%T")
     mkdir -p /klab/
@@ -175,6 +192,10 @@ function inputcheck(){
             pathinput
         fi
     done
+
+    echo -e "\nSAMBAPROFILE=$PROFILESPATH\nSAMBAHOME=$HOMEPATH\nSAMBANETLOGON=$NETLOGONPATH\n" >> ~/.bashrc
+
+    source ~/.bashrc
     
 }
 
@@ -606,6 +627,7 @@ fi
 
 ##call function
 check_root
+check_internet
 createlog
 sethostname
 sambainput
