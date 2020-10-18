@@ -204,7 +204,7 @@ function inputcheck(){
 function install_package_base(){
 
 
-    sudo pacman -S pacman-contrib --noconfirm
+    sudo pacman -S pacman-contrib --noconfirm 2>/dev/null
     progress=6
 
     for PKG in $(cat $(pwd)/package_x86_64)
@@ -407,11 +407,15 @@ function resolvs(){
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
-    
+
+    echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    systemctl restart NetworkManager
     rm -rf $RESOLV_FILE
+    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
+
 
     cp resolvconf/resolvconf.conf /etc/
-    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
+    grep -rli SEARCHDOMAIN $RESOLVCONF_FILE | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
     echo "search ${samba_realm,,}" > ${RESOLV_FILE}
@@ -420,10 +424,7 @@ function resolvs(){
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolve"
 
-
-    echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
     resolvconf -u
-    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
@@ -647,7 +648,7 @@ inputcheck
     banner "50" "Configuring Keberos Network Authenticator"
     kerberos >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
     banner "60" "Configuring Local DNS for Server Usage"
-    resolvs  >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Resolv Failed. Please Check log in $LOG" 
+    resolvs &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Resolv Failed. Please Check log in $LOG" 
     banner "70" "Registering Samba Domain Name in Local"
     hosts >> $LOG || echo -e "${RED}[ FAILED ]${NC} Registering Host Failed. Please Check log in $LOG" 
     banner "75" "Registering Samba Domain Name In Network"
