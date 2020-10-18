@@ -407,11 +407,15 @@ function resolvs(){
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
-    
+
+    echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
     rm -rf $RESOLV_FILE
+    resolvconf -u
+    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
+
 
     cp resolvconf/resolvconf.conf /etc/
-    grep -rli SEARCHDOMAIN /etc/resolvconf.conf | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
+    grep -rli SEARCHDOMAIN $RESOLVCONF_FILE | xargs -i@ sed -i s+SEARCHDOMAIN+${samba_realm,,}+g @    
     echo -e "${GREEN}[ OK ]${NC} Configure Resolveconf"
 
     echo "search ${samba_realm,,}" > ${RESOLV_FILE}
@@ -419,11 +423,6 @@ function resolvs(){
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configure Resolve"
-
-
-    echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
-    resolvconf -u
-    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
