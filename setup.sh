@@ -409,6 +409,7 @@ function resolvs(){
     RESOLV_FILE=/etc/resolv.conf
 
     echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    systemctl restart NetworkManager
     rm -rf $RESOLV_FILE
     resolvconf -u
     echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
@@ -646,7 +647,7 @@ inputcheck
     banner "50" "Configuring Keberos Network Authenticator"
     kerberos >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
     banner "60" "Configuring Local DNS for Server Usage"
-    resolvs  >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Resolv Failed. Please Check log in $LOG" 
+    resolvs &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Resolv Failed. Please Check log in $LOG" 
     banner "70" "Registering Samba Domain Name in Local"
     hosts >> $LOG || echo -e "${RED}[ FAILED ]${NC} Registering Host Failed. Please Check log in $LOG" 
     banner "75" "Registering Samba Domain Name In Network"
