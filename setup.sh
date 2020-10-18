@@ -421,7 +421,7 @@ function resolvs(){
     echo -e "${GREEN}[ OK ]${NC} Configure Resolve"
 
 
-    echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
     resolvconf -u
     echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
