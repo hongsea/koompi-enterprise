@@ -253,6 +253,7 @@ function inputcheck(){
 
 function install_package_base(){
 
+    sudo rm -rf /usr/lib/systemd/system/samba.service ### fix error samba installation
 
     sudo pacman -Sy pacman-contrib --needed --noconfirm 2>/dev/null
     progress=6
@@ -278,7 +279,7 @@ function install_package_base(){
         then 
             echo -e "${RED}[ FAILED ]${NC} Package: $RED $PKG $NC failed to Install" >> $LOG
             # errorexit="true"
-            exit
+            exit;
             break
         fi
     done
