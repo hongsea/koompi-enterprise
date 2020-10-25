@@ -330,25 +330,6 @@ function samba(){
 
     USERNAME=$(id -u -n)
 
-    sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
-    --realm=$samba_realm --domain=$samba_domain --adminpass=$samba_password
-
-    if [[ -f /etc/samba/smb.conf ]];
-    then
-        sudo cp /etc/samba/smb.conf /etc/samba/smb.conf.backup
-    fi 
-    
-    SMB=/etc/samba/smb.conf
-    sudo chown -R $USERNAME:users $SMB
-    echo -e "# Global parameters" > $SMB
-    echo -e "[global]" >> $SMB
-    echo -e "\tnetbios name = $HOSTNAME" >> $SMB
-    echo -e "\trealm = ${samba_realm}" >> $SMB
-    echo -e "\tworkgroup = ${samba_domain}" >> $SMB
-    echo "  + Configure path..."
-
-    echo -e "${GREEN}[ OK ]${NC} Configuring smb.conf..."
-
     #create path directory
     sudo mkdir -p $NETLOGONPATH
     sudo mkdir -p $HOMEPATH
@@ -364,12 +345,34 @@ function samba(){
     sudo chmod 0777 $PROFILESPATH
     echo -e "${GREEN}[ OK ]${NC} Set permisson"
 
-    grep -rli SMBNE $(pwd)/samba/smb | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
-    grep -rli SMBHO $(pwd)/samba/smb | xargs -i@ sed -i s+SMBHO+"$HOMEPATH/%S"+g @
-    grep -rli SMPRO $(pwd)/samba/smb | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
-    cat $(pwd)/samba/smb >> $SMB
+    sudo samba-tool domain provision --server-role=dc --use-rfc2307 --dns-backend=BIND9_DLZ \
+    --realm=$samba_realm --domain=$samba_domain --adminpass=$samba_password
+
+    if [[ -f /etc/samba/smb.conf ]];
+    then
+        sudo mv /etc/samba/smb.conf /etc/samba/smb.conf.backup
+    fi
+    
+    SMB=/etc/samba/smb.conf
+    cp $PWD/samba/smb $SMB
+    sudo chown -R $USERNAME:users $SMB
+
+    grep -rli HOSTNAME $SMB | xargs -i@ sed -i s+HOSTNAME+$HOSTNAME+g @
+    grep -rli REALM $SMB | xargs -i@ sed -i s+REALM+$samba_realm+g @
+    grep -rli DOMAIN $SMB | xargs -i@ sed -i s+DOMAIN+$samba_domain+g @
+    # echo -e "# Global parameters" > $SMB
+    # echo -e "[global]" >> $SMB
+    # echo -e "\tnetbios name = $HOSTNAME" >> $SMB
+    # echo -e "\trealm = ${samba_realm}" >> $SMB
+    # echo -e "\tworkgroup = ${samba_domain}" >> $SMB
+    echo "  + Configure path..."
+
+    grep -rli SMBNE $SMB | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
+    grep -rli SMBHO $SMB | xargs -i@ sed -i s+SMBHO+"$HOMEPATH/%S"+g @
+    grep -rli SMPRO $SMB | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
+    # cat $(pwd)/samba/smb >> $SMB
     sudo chown -R root:root $SMB
-    echo -e "${GREEN}[ OK ]${NC} Replace name"
+    echo -e "${GREEN}[ OK ]${NC} Configuring smb.conf..."
 
     SAMBALDB_FILE=(/etc/profile.d/sambaldb.sh)
     sudo touch ${SAMBALDB_FILE}
