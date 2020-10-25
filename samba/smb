@@ -11,8 +11,8 @@
    idmap config trust-dom:backend = rid
    idmap config ad-dom:range = 2000000-2999999
    idmap config ad-dom:backend = rid
-   idmap config DOMAIN : backend = ad
-   idmap config DOMAIN:unix_primary_group = yes
+   idmap config HOSTNAME : backend = ad
+   idmap config HOSTNAME:unix_primary_group = yes
    idmap config * : range = 2000-10000
    idmap config * : backend = tdb
 
