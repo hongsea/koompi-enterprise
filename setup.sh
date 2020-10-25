@@ -254,7 +254,7 @@ function inputcheck(){
 function install_package_base(){
 
 
-    sudo pacman -S pacman-contrib --needed --noconfirm 2>/dev/null
+    sudo pacman -Sy pacman-contrib --needed --noconfirm 2>/dev/null
     progress=6
 
     for PKG in $(cat $(pwd)/package_x86_64)
@@ -272,23 +272,24 @@ function install_package_base(){
         fi
     done
 
-    for PKG in $(cat $(pwd)/package_x86_64)
+    for PKG in $(cat package_x86_64)
     do
-
         if [[ ! -n "$(pacman -Qs $PKG)" ]];
         then 
             echo -e "${RED}[ FAILED ]${NC} Package: $RED $PKG $NC failed to Install" >> $LOG
-            errorexit="true"
+            # errorexit="true"
+            exit
             break
         fi
     done
 
-    if [[ "$errorexit" == "true" ]];
-    then
-        exit
-    else
-        cp service/samba.service /usr/lib/systemd/system/
-    fi
+    # if [[ "$errorexit" == "true" ]];
+    # then
+    #     exit
+    # else
+    #     cp service/samba.service /usr/lib/systemd/system/
+    # fi
+    cp service/samba.service /usr/lib/systemd/system/
 }
 
 ##...............NTP SERVER FUNCTION SETUP...............
