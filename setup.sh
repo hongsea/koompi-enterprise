@@ -77,6 +77,12 @@ function sambainput(){
     
     secondlvl_domain=$(echo $samba_realm |awk -F'.' '{printf $NF}')
     samba_domain=${samba_realm//".$secondlvl_domain"}
+
+    if [[ "$samba_domain" == *.* ]];
+    then
+        samba_domain=$(echo "$samba_domain" | awk -F'.' '{printf $1}')
+    fi
+
     samba_realm=${samba_realm^^}
     samba_domain=${samba_domain^^}
 
@@ -108,7 +114,7 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
             --msgbox "Your password does match. Please retype it again" \
             10 80
 
-        elif [[ "${#samba_password}" < 8 ]];
+        elif [[ "${#samba_password}" -lt 8 ]];
         then
             TERM=ansi whiptail --clear \
             --backtitle "Samba Active Directory Domain Controller" \
