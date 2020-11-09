@@ -38,7 +38,7 @@ It is as a designed simple and easy to use system, here are the main features of
 
 ## How to Install KOOMPI Enterprise
 ```
-$ git clone https://github.com/koompi/enterprise-server.git && cd enterprise-server
+$ git clone --depth 1 https://github.com/koompi/enterprise-server.git && cd enterprise-server
 $ sudo ./setup.sh
 ```
 

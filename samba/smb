@@ -1,36 +1,41 @@
-        server role = active directory domain controller
-        server services = s3fs, rpc, nbt, wrepl, ldap, cldap, kdc, drepl, winbindd, ntp_signd, kcc, dnsupdate
-        idmap_ldb:use rfc2307 = yes
+# Global parameters
+[global]
+   netbios name = HOSTNAME
+   realm = REALM
+   workgroup = DOMAIN
+   server role = active directory domain controller
+   server services = s3fs, rpc, nbt, wrepl, ldap, cldap, kdc, drepl, winbindd, ntp_signd, kcc, dnsupdate
+   idmap_ldb:use rfc2307 = yes
 
-        idmap config trust-dom:range = 4000000-4999999
-        idmap config trust-dom:backend = rid
-        idmap config ad-dom:range = 2000000-2999999
-        idmap config ad-dom:backend = rid
-        idmap config lovekoompi : backend = ad
-        idmap config lovekoompi:unix_primary_group = yes
-        idmap config * : range = 2000-10000
-        idmap config * : backend = tdb
+   idmap config trust-dom:range = 4000000-4999999
+   idmap config trust-dom:backend = rid
+   idmap config ad-dom:range = 2000000-2999999
+   idmap config ad-dom:backend = rid
+   idmap config HOSTNAME : backend = ad
+   idmap config HOSTNAME:unix_primary_group = yes
+   idmap config * : range = 2000-10000
+   idmap config * : backend = tdb
 
-        security = user
-        winbind enum users = yes
-        winbind enum groups = yes
-        winbind use default domain = yes
-        winbind nested groups = yes
-        idmap uid = 2000-10000
-        store dos attributes = Yes
+   security = user
+   winbind enum users = yes
+   winbind enum groups = yes
+   winbind use default domain = yes
+   winbind nested groups = yes
+   idmap uid = 2000-10000
+   store dos attributes = Yes
 
-        domain logons = Yes 
-        domain master  = yes
-        os level = 33 
-        preferred master = Yes 
-        domain master = Yes
-        passdb backend = tdbsam 
-        printcap name = cups 
+   domain logons = Yes 
+   domain master  = yes
+   os level = 33 
+   preferred master = Yes 
+   domain master = Yes
+   passdb backend = tdbsam 
+   printcap name = cups 
 
-        log level = 1
-        log file = /var/log/samba/log.%U
-        # maximum size of 50KB per log file, then rotate:
-        server signing = auto
+   log level = 1
+   log file = /var/log/samba/log.%U
+   # maximum size of 50KB per log file, then rotate:
+   server signing = auto
 
 [netlogon]
    comment = Network Logon Service
@@ -49,15 +54,15 @@
    directory mask = 0700
    veto files = /*.exe/*.msi/*.mp3/*.wma/*.ram/*.mov/*.mpg/*.mpeg/*.bat/*.lnk/*.zip/"Folder Settings"/desktop.ini/
 
- [profiles]
-    comment = Users profiles
-    path = SMPRO
-    available = yes
-    writable = yes
-    read only = no
-    printable = no
-    locking = no
-    create mask = 0700
-    directory mask = 0700
-    browsable = no
-    strict locking = no
+[profiles]
+   comment = Users profiles
+   path = SMPRO
+   available = yes
+   writable = yes
+   read only = no
+   printable = no
+   locking = no
+   create mask = 0700
+   directory mask = 0700
+   browsable = no
+   strict locking = no
