@@ -438,7 +438,7 @@ function samba(){
     grep -rli HOSTNAME $SMB | xargs -i@ sed -i s+HOSTNAME+$HOSTNAME+g @
     grep -rli REALM $SMB | xargs -i@ sed -i s+REALM+$samba_realm+g @
     # grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+DOMAIN+$samba_domain+g @
-    grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+DOMAIN+$full_domain+g @
+    grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+LONG_DOMAIN+$full_domain+g @
     # echo -e "# Global parameters" > $SMB
     # echo -e "[global]" >> $SMB
     # echo -e "\tnetbios name = $HOSTNAME" >> $SMB
