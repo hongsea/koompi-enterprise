@@ -372,11 +372,11 @@ function bind(){
     sudo  chmod 664 /var/log/named.log
     echo -e "${GREEN}[ OK ]${NC} Set owner and permission on name.log"
 
-    sudo cp $(pwd)/bind/empty0.zone /var/named/empty0.zone
-    echo -e "${GREEN}[ OK ]${NC} Coping empty.zone"
+    # sudo cp $(pwd)/bind/empty0.zone /var/named/empty0.zone
+    # echo -e "${GREEN}[ OK ]${NC} Coping empty.zone"
 
-    sudo chown root:named /var/named/empty0.zone
-    echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
+    # sudo chown root:named /var/named/empty0.zone
+    # echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
 
         
     echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
@@ -435,10 +435,10 @@ function samba(){
     cp $PWD/samba/smb $SMB
     sudo chown -R $USERNAME:users $SMB
 
-    grep -rli HOSTNAME $SMB | xargs -i@ sed -i s+HOSTNAME+$HOSTNAME+g @
+    grep -rli HOSTNAME $SMB | xargs -i@ sed -i s+HOSTNAME+${HOSTNAME^^}+g @
     grep -rli REALM $SMB | xargs -i@ sed -i s+REALM+$samba_realm+g @
     # grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+DOMAIN+$samba_domain+g @
-    grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+LONG_DOMAIN+$full_domain+g @
+    grep -rli SHORT_DOMAIN $SMB | xargs -i@ sed -i s+SHORT_DOMAIN+$samba_domain+g @
     # echo -e "# Global parameters" > $SMB
     # echo -e "[global]" >> $SMB
     # echo -e "\tnetbios name = $HOSTNAME" >> $SMB
@@ -479,8 +479,9 @@ function samba(){
 function kerberos(){
 
     sudo cp krb5/krb5.conf /etc/krb5.conf
-    grep -rli SAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+SAMBAREALM+${samba_realm}+g @
-    grep -rli SAMBADOMAIN /etc/krb5.conf | xargs -i@ sed -i s+SAMBADOMAIN+${samba_domain}+g @
+    grep -rli CAPSAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+CAPSAMBAREALM+${samba_realm}+g @
+    grep -rli SMALLSAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+SMALLSAMBAREALM+${samba_realm,,}+g @
+    grep -rli HOSTNAME /etc/krb5.conf | xargs -i@ sed -i s+HOSTNAME+${samba_hostname}+g @
     echo -e "${GREEN}[ OK ]${NC} Copy krb5.conf"
     echo -e "${GREEN}[ OK ]${NC} Configure KERBEROS successful. ${NC}"
 }
