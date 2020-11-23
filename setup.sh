@@ -480,6 +480,7 @@ function kerberos(){
 
     sudo cp krb5/krb5.conf /etc/krb5.conf
     grep -rli SAMBAREALM /etc/krb5.conf | xargs -i@ sed -i s+SAMBAREALM+${samba_realm}+g @
+    grep -rli SAMBADOMAIN /etc/krb5.conf | xargs -i@ sed -i s+SAMBADOMAIN+${samba_domain}+g @
     echo -e "${GREEN}[ OK ]${NC} Copy krb5.conf"
     echo -e "${GREEN}[ OK ]${NC} Configure KERBEROS successful. ${NC}"
 }
