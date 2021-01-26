@@ -127,6 +127,10 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
     done
 
 
+    current_ip=$(ip -4 a |grep inet | awk -F' ' '{print "ifname = "$NF " | IP =  " $2}')
+    current_ip_lines=$(echo "$current_ip" | wc -l)
+    box_height=$(( 11 + $current_ip_lines ))
+
     while true;
     do
         samba_ip=$(TERM=ansi whiptail --clear \
@@ -134,8 +138,8 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
         --title "[ IP for Domain ]" \
         --nocancel \
         --ok-button Submit  \
-        --inputbox "\nPlease enter an IP for your new active directory server\nExample:  172.16.1.1\n" \
-        8 80 3>&1 1>&2 2>&3)
+        --inputbox "\nPlease enter an IP for your new active directory server WITHOUT SUBNET\n\nYour Current IPv4 interface: \n$current_ip" \
+        $box_height 80 3>&1 1>&2 2>&3)
 
         if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
