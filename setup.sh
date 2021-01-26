@@ -149,6 +149,32 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
         fi
     done
 
+
+    current_ip=$(ip -4 a |grep inet | awk -F' ' '{print "ifname = "$NF " | IP =  " $2}')
+    current_ip_lines=$(echo "$current_ip" | wc -l)
+    box_height=$(( 11 + $current_ip_lines ))
+
+    while true;
+    do
+        samba_ip=$(TERM=ansi whiptail --clear \
+        --backtitle "Samba Active Directory Domain Controller"  \
+        --title "[ IP for Domain ]" \
+        --nocancel \
+        --ok-button Submit  \
+        --inputbox "\nPlease enter an IP for your new active directory server WITHOUT SUBNET\n\nYour Current IPv4 interface: \n$current_ip" \
+        $box_height 80 3>&1 1>&2 2>&3)
+
+        if [[ $samba_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
+        then
+            break
+        else
+            TERM=ansi whiptail --clear \
+            --backtitle "Samba Active Directory Domain Controller" \
+            --title "[ IP for Domain ]" \
+            --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" \
+            10 80
+        fi
+    done
 }
 
 function pathinput(){
