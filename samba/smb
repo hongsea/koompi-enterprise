@@ -1,61 +1,62 @@
 # Global parameters
 [global]
-   netbios name = HOSTNAME
-   realm = REALM
-   workgroup = SHORT_DOMAIN
-   server role = active directory domain controller
-   server services = s3fs, rpc, nbt, wrepl, ldap, cldap, kdc, drepl, winbindd, ntp_signd, kcc, dnsupdate
-   idmap_ldb:use rfc2307 = yes
-
-   security = user
-   winbind enum users = yes
-   winbind enum groups = yes
-   winbind use default domain = yes
-   winbind nested groups = yes
-   store dos attributes = Yes
-
-   domain master  = yes
-   os level = 33 
-   preferred master = Yes 
-   domain master = Yes
-   passdb backend = tdbsam 
-   printcap name = cups 
-
-   log level = 1
-   log file = /var/log/samba/log.%U
-   # maximum size of 50KB per log file, then rotate:
-   server signing = auto
-
+        netbios name = HOSTNAME
+        realm = REALM
+        server role = active directory domain controller
+        server services = s3fs, rpc, nbt, wrepl, ldap, cldap, kdc, drepl, winbindd, ntp_signd, kcc, dnsupdate
+        workgroup = SHORT_DOMAIN
+        idmap_ldb:use rfc2307 = yes
+        security = user
+        winbind enum users = yes
+        winbind enum groups = yes
+        winbind use default domain = yes
+        winbind nested groups = yes
+        store dos attributes = Yes
+        allow nt4 crypto = no
+        tls enabled  = yes
+        tls keyfile  = tls/key.pem
+        tls certfile = tls/cert.pem
+        tls cafile   = tls/ca.pem
+        domain master  = yes
+        os level = 33 
+        preferred master = Yes 
+        domain master = Yes
+        passdb backend = tdbsam 
+        printcap name = cups
+        log level = 1
+        log file = /var/log/samba/log.%U
+        # maximum size of 50KB per log file, then rotate:
+        server signing = auto
 [sysvol]
-   path = /var/lib/samba/sysvol
-   read only = No
+        path = /var/lib/samba/sysvol
+        read only = No
    
 [netlogon]
-   comment = Network Logon Service
-   path = SMBNE
-   public = no
-   writeable = no
-   browsable = no
+        comment = Network Logon Service
+        path = SMBNE
+        public = no
+        writeable = no
+        browsable = no
 
 [homes]
-   comment = Home Directories
-   path = SMBHO
-   valid users = %S
-   browseable = no
-   writable = yes
-   create mask = 0700
-   directory mask = 0700
-   veto files = /*.exe/*.msi/*.mp3/*.wma/*.ram/*.mov/*.mpg/*.mpeg/*.bat/*.lnk/*.zip/"Folder Settings"/desktop.ini/
+        comment = Home Directories
+        path = SMBHO
+        valid users = %S
+        browseable = no
+        writable = yes
+        create mask = 0700
+        directory mask = 0700
+        veto files = /*.exe/*.msi/*.mp3/*.wma/*.ram/*.mov/*.mpg/*.mpeg/*.bat/*.lnk/*.zip/"Folder Settings"/desktop.ini/
 
 [profiles]
-   comment = Users profiles
-   path = SMPRO
-   available = yes
-   writable = yes
-   read only = no
-   printable = no
-   locking = no
-   create mask = 0700
-   directory mask = 0700
-   browsable = no
-   strict locking = no
+        comment = Users profiles
+        path = SMPRO
+        available = yes
+        writable = yes
+        read only = no
+        printable = no
+        locking = no
+        create mask = 0700
+        directory mask = 0700
+        browsable = no
+        strict locking = no
