@@ -58,7 +58,7 @@ function sethostname(){
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
     --ok-button Submit \
-    --inputbox "\nPlease enter a suitable new hostname for the active directory server.\n\nExample:  adlab\n" \
+    --inputbox "\nPlease enter a suitable new hostname for the active directory server.\n\nExample:  master\n" \
     10 80 3>&1 1>&2 2>&3)
     sudo hostnamectl set-hostname $samba_hostname
     HOSTNAME=$samba_hostname
@@ -166,7 +166,7 @@ function pathinput(){
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
     --ok-button Submit  \
-    --inputbox "\nPlease enter a path for Samba User Home for the active directory.\n\nDefault:  /klab/samba/home\n" \
+    --inputbox "\nPlease enter a path for Samba User Home for the active directory.\n\nDefault:  /klab/samba/homes\n" \
     10 100 3>&1 1>&2 2>&3)
 
     PROFILESPATH=$(TERM=ansi whiptail --clear \
@@ -183,7 +183,7 @@ function pathinput(){
     fi
     if [ -z "$HOMEPATH" ]
     then
-        HOMEPATH='/klab/samba/home'
+        HOMEPATH='/klab/samba/homes'
     fi
     if [ -z "$PROFILESFATH" ]
     then
@@ -250,9 +250,7 @@ function inputcheck(){
         fi
     done
 
-    echo -e "\nSAMBAPROFILE=$PROFILESPATH\nSAMBAHOME=$HOMEPATH\nSAMBANETLOGON=$NETLOGONPATH\n" >> ~/.bashrc
-
-    source ~/.bashrc
+    echo -e "\nSAMBAPROFILE=$PROFILESPATH\nSAMBAHOME=$HOMEPATH\nSAMBANETLOGON=$NETLOGONPATH\n" | sudo tee -a  /etc/environment
     
 }
 
@@ -308,9 +306,11 @@ function install_package_base(){
 }
 
 ##...............NTP SERVER FUNCTION SETUP...............
-NTP_FILE=(/etc/ntp.conf)
+
 
 function ntp(){
+
+    NTP_FILE=(/etc/ntp.conf)
 
     if [[ -f "${NTP_FILE}" ]];
     then 
@@ -377,23 +377,6 @@ function bind(){
     sudo chown root:named /var/log/named.log
     sudo  chmod 664 /var/log/named.log
     echo -e "${GREEN}[ OK ]${NC} Set owner and permission on name.log"
-
-    # sudo cp $(pwd)/bind/empty0.zone /var/named/empty0.zone
-    # echo -e "${GREEN}[ OK ]${NC} Coping empty.zone"
-
-    # sudo chown root:named /var/named/empty0.zone
-    # echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
-
-        
-    # echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
-    # >  /usr/bin/namedhelper.sh
-
-    # echo -e "${GREEN}[ OK ]${NC} Created Named Helper Service"
-
-    # chmod +x /usr/bin/namedhelper.sh
-    # cp service/namedhelper.service /usr/lib/systemd/system/
-    # systemctl enable namedhelper.service
-    # systemctl start namedhelper.service
 
     sudo systemctl enable named
     sudo systemctl start named
@@ -550,7 +533,6 @@ function nsswitch(){
 
 ##...................TESTING INSTALLATION..........................
 function testinstall(){
-
 
     banner "90" "Attempt to Start Samba Services"
     sudo systemctl restart samba &>> $LOG
@@ -757,6 +739,6 @@ inputcheck
     --backtitle "Samba Active Directory Domain Controller" \
     --title "[ KOOMPI AD Server ]" \
     --gauge "Please wait while installing" \
-    10 100 0
+    10 100 80
 
 clear
