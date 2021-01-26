@@ -297,7 +297,7 @@ function install_package_base(){
     # else
     #     cp service/samba.service /usr/lib/systemd/system/
     # fi
-    cp service/samba.service /usr/lib/systemd/system/
+    cp service/samba.service /etc/systemd/system/
 }
 
 ##...............NTP SERVER FUNCTION SETUP...............
@@ -378,15 +378,15 @@ function bind(){
     # echo -e "${GREEN}[ OK ]${NC} Set permission on empty0.zone"
 
         
-    echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
-    >  /usr/bin/namedhelper.sh
+    # echo -e '#!/bin/bash\nmkdir -p /var/lib/samba/private/dns\nchmod 770 -R /var/lib/samba/private/dns' \
+    # >  /usr/bin/namedhelper.sh
 
-    echo -e "${GREEN}[ OK ]${NC} Created Named Helper Service"
+    # echo -e "${GREEN}[ OK ]${NC} Created Named Helper Service"
 
-    chmod +x /usr/bin/namedhelper.sh
-    cp service/namedhelper.service /usr/lib/systemd/system/
-    systemctl enable namedhelper.service
-    systemctl start namedhelper.service
+    # chmod +x /usr/bin/namedhelper.sh
+    # cp service/namedhelper.service /usr/lib/systemd/system/
+    # systemctl enable namedhelper.service
+    # systemctl start namedhelper.service
 
     sudo systemctl enable named
     sudo systemctl start named
@@ -436,19 +436,12 @@ function samba(){
 
     grep -rli HOSTNAME $SMB | xargs -i@ sed -i s+HOSTNAME+${HOSTNAME^^}+g @
     grep -rli REALM $SMB | xargs -i@ sed -i s+REALM+$samba_realm+g @
-    # grep -rli LONG_DOMAIN $SMB | xargs -i@ sed -i s+DOMAIN+$samba_domain+g @
     grep -rli SHORT_DOMAIN $SMB | xargs -i@ sed -i s+SHORT_DOMAIN+$samba_domain+g @
-    # echo -e "# Global parameters" > $SMB
-    # echo -e "[global]" >> $SMB
-    # echo -e "\tnetbios name = $HOSTNAME" >> $SMB
-    # echo -e "\trealm = ${samba_realm}" >> $SMB
-    # echo -e "\tworkgroup = ${samba_domain}" >> $SMB
     echo "  + Configure path..."
 
     grep -rli SMBNE $SMB | xargs -i@ sed -i s+SMBNE+$NETLOGONPATH+g @
     grep -rli SMBHO $SMB | xargs -i@ sed -i s+SMBHO+"$HOMEPATH/%S"+g @
     grep -rli SMPRO $SMB | xargs -i@ sed -i s+SMPRO+$PROFILESPATH+g @
-    # cat $(pwd)/samba/smb >> $SMB
     sudo chown -R root:root $SMB
     echo -e "${GREEN}[ OK ]${NC} Configuring smb.conf..."
 
@@ -467,7 +460,8 @@ function samba(){
     /etc/profile.d/sambaldb.sh
     echo -e "${GREEN}[ OK ]${NC} /etc/profile.d/sambaldb.sh"
     
-    sudo systemctl enable samba
+    #sudo systemctl enable samba
+    sudo ln -sf /etc/systemd/system/samba.service /etc/systemd/system/multi-user.target.wants/
     sudo systemctl start samba
     echo -e "${GREEN}[ OK ]${NC} Enable and Start service"
 
@@ -541,6 +535,7 @@ function dnsbackup(){
 ##....................SETUP NSSWITCH............................
 function nsswitch(){
 
+    sudo mv /etc/nsswitch.conf{,.default}
     sudo cp $(pwd)/nsswitch/nsswitch.conf /etc/nsswitch.conf
     echo -e "${GREEN}[ OK ]${NC} Configuring nsswithch"
     echo -e "${GREEN} Configure Nsswitch successful. $NC"
