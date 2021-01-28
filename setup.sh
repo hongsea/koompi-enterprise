@@ -38,9 +38,7 @@ check_root(){
 
 createlog(){
 
-    sudo timedatectl set-timezone Asia/Phnom_Penh
-    sudo timedatectl set-ntp 1
-    sudo timedatectl
+    sudo ln -sf /usr/share/zoneinfo/Asia/Phnom_Penh /etc/localtime
 
     NOW=$(date +"%m-%d-%Y-%T")
     mkdir -p /klab/
@@ -294,18 +292,11 @@ function install_package_base(){
         if [[ ! -n "$(pacman -Qs $PKG)" ]];
         then 
             echo -e "${RED}[ FAILED ]${NC} Package: $RED $PKG $NC failed to Install" >> $LOG
-            # errorexit="true"
             exit;
             break
         fi
     done
 
-    # if [[ "$errorexit" == "true" ]];
-    # then
-    #     exit
-    # else
-    #     cp service/samba.service /usr/lib/systemd/system/
-    # fi
     cp service/samba.service /etc/systemd/system/
 }
 
@@ -589,112 +580,6 @@ function user_management(){
     echo -e "${GREEN}[ OK ] Configure User management successful. $NC"
     echo -e "${GREEN}[ OK ] Configure AD successful.${NC}"
 
-}
-##....................SETUP DHCP SERVER................
-echo 
-
-function dhcp(){
-    d='"'
-    echo "option domain-name $d$DHCP_DOMAIN$d; "> $DHCP_FILE
-    echo "option domain-name-servers $DHCP_DOMAIN;" >> $DHCP_FILE
-    echo "subnet $DHCP_NETWORK netmask $DHCP_NETMASK {" >> $DHCP_FILE
-    echo "option routers $DHCP_ROUTER;" >> $DHCP_FILE
-    echo "option subnet-mask $DHCP_NETMASK;" >> $DHCP_FILE
-    echo "range dynamic-bootp $DHCP_REANGES;}" >> $DHCP_FILE
-    #permission
-    sudo chown -R root:root /etc/dhcpd.conf
-    sudo chmod 644 /etc/dhcpd.conf
-    #start service
-    sudo systemctl enable dhcpd4
-    sudo systemctl start dhcpd4
-    echo "successful"
-}
-function reads(){
-
-    #read items
-    read -p "$(echo -e "$RED Network $NC: ")"    DHCP_NETWORK
-    read -p "$(echo -e "$RED Netmask $NC: ")"    DHCP_NETMASK
-    read -p "$(echo -e "$RED Routers $NC: ")"    DHCP_ROUTER
-    read -p "$(echo -e "$RED Ranges $NC : ")"    DHCP_REANGES
-    read -p "$(echo -e "$RED Domain $NC : ")"    DHCP_DOMAIN
-
-    #show items
-    echo -e "..........YOUR INPUT..........."
-    echo -e "$RED Network $NC: $DHCP_NETWORK"
-    echo -e "$RED Netmask $NC: $DHCP_NETMASK"
-    echo -e "$RED Routers $NC: $DHCP_ROUTER"
-    echo -e "$RED Ranges $NC: $DHCP_REANGES"
-    echo -e "$RED Domain $NC: $DHCP_DOMAIN"
-    read -p "continue or again [C/A]:" ca
-    CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
-    if [[ $CA == c ]];then
-        dhcp #call dhcp
-    else
-        reads #call reads
-    fi
-}
-DHCP_FILE=(/etc/dhcpd.conf)
-USERNAME=$(id -n -u)
-function maindhcp(){
-read -p "$(echo -e $YELLOW"Do you need setup $RED DHCP $NC $YELLOW Server:[Yes/No]:"$NC)" YN
-D=$(echo "$YN" | tr '[:upper:]' '[:lower:]')
-if [[ $D == yes || $D == y || $D == ye ]];then
-    if [[ -f $DHCP_FILE ]];then #check dhcp file created or not
-        if [[ -f /etc/dhcpd.conf.backup ]];then #check dhcp backup create or not
-            sudo chown -R $USERNAME:$USERNAME $DHCP_FILE
-            sudo chmod 744 $DHCP_FILE
-            reads #call reads
-        else 
-            sudo mv /etc/dhcpd.conf /etc/dhcpd.conf.backup
-            sudo touch /etc/dhcpd.conf
-            sudo chown -R $USERNAME:$USERNAME /etc/dhcpd.conf
-            sudo chmod 744 /etc/dhcpd.conf
-            reads #call reads
-        fi #end of check dhcp backup file
-    else 
-        sudo touch /etc/dhcpd.conf
-        maindhcp #call maindhcp
-    fi # end of check dhcp file
-fi
-}
-# maindhcp
-
-#.....................SETUP FTP SERVER...................
-function ftp(){
-read -p "$(echo -e $YELLOW"Do you need setup $RED FTP $NC $YELLOW Server:[Yes/No]:"$NC)" YN
-F=$(echo "$YN" | tr '[:upper:]' '[:lower:]')
-if [[ $F == yes || $F == y || $F == ye ]];then
-    #service
-    sudo systemctl enable docker 
-    sudo systemctl start docker
-    ftpread(){
-        read -p "$(echo -e "$RED Directory Path:$NC")" FTP_DIRPATH
-        read -p "$(echo -e "$RED IP Address:$NC")" FTP_IPADDRESS
-        read -p "$(echo -e "$RED Images name:$NC")" FTP_IMAGENAME
-        read -p "$(echo -e "$RED port:$NC")" FTP_PORT
-        read -p "$(echo -e "$RED Username:$NC")" FTP_NAME
-        read -s -p "$(echo -e "$RED Password:$NC")" FTP_PASSWORD
-        echo 
-        echo "............YOUR INPUT............"
-        echo -e "$RED Directory Path:$NC $FTP_DIRPATH"
-        echo -e "$RED IP Address:$NC $FTP_IPADDRESS"
-        echo -e "$RED Images name:$NC" $FTP_IMAGENAME
-        echo -e "$RED port:$NC $FTP_PORT"
-        echo -e "$RED Username:$NC $FTP_NAME"
-        echo -e "$RED Password:$NC******"
-
-        read -p "continue or again[C/A]:" ca
-        CA=$(echo "$ca" | tr '[:upper:]' '[:lower:]')
-        if [ $CA == c ];then
-            #docker
-            sudo docker pull pionux/ftp:0.1
-            sudo docker run -d -v $FTP_DIRPATH:/home/vsftpd -p 20:20 -p 23:21 -p 47400-47470:47400-47470 -e FTP_USER=$FTP_NAME -e FTP_PASS=$FTP_PASSWORD -e PASV_ADDRESS=$FTP_IPADDRESS --name $FTP_IMAGENAME --restart=always pionux/ftp:0.1
-        else 
-            ftpread
-        fi
-    }
-    ftpread
-fi
 }
 
 ##call function
