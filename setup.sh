@@ -252,7 +252,7 @@ function inputcheck(){
         fi
     done
 
-    echo -e "\nSAMBAPROFILE=$PROFILESPATH\nSAMBAHOME=$HOMEPATH\nSAMBANETLOGON=$NETLOGONPATH\n" | sudo tee -a  /etc/environment
+    echo -e "\nSAMBAPROFILE=$PROFILESPATH\nSAMBAHOME=$HOMEPATH\nSAMBANETLOGON=$NETLOGONPATH\n" | sudo tee -a  /etc/environment >> /dev/null
     
 }
 
