@@ -281,8 +281,9 @@ function install_package_base(){
                 echo -e "${GREEN}[ OK ]${NC} Package:${BLUE} ${PKG} ${NC}Installed successfull." >> $LOG
             fi
         else
+            arch=$(uname -m)
             echo -e "${GREEN}Installing ${PKG} ${NC}" >> $LOG
-            sudo pacman -U package/bind-9.16.10-1-x86_64.pkg.tar.zst --needed --noconfirm 2>/dev/null >> $LOG
+            sudo pacman -U package/bind-9.16.10-1-$arch.pkg.tar.zst --needed --noconfirm 2>/dev/null >> $LOG
             echo -e "${GREEN}[ OK ]${NC} Package:${BLUE} ${PKG} ${NC}Installed successfull." >> $LOG
         fi
     done
