@@ -51,7 +51,7 @@ createlog(){
 
 function sethostname(){
 
-    samba_hostname=$(TERM=ansi whiptail --clear \
+    samba_hostname=$(whiptail --clear \
     --title "[ Hostname Selection ]" \
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
@@ -65,7 +65,7 @@ function sethostname(){
 
 function sambainput(){
 
-    samba_realm=$(TERM=ansi whiptail --clear \
+    samba_realm=$(whiptail --clear \
     --title "[ Realm Selection ]"  \
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
@@ -92,7 +92,7 @@ function sambainput(){
 
     while true;
     do
-        samba_ip=$(TERM=ansi whiptail --clear \
+        samba_ip=$(whiptail --clear \
         --backtitle "Samba Active Directory Domain Controller"  \
         --title "[ IP for Domain ]" \
         --nocancel \
@@ -104,7 +104,7 @@ function sambainput(){
         then
             break
         else
-            TERM=ansi whiptail --clear \
+            whiptail --clear \
             --backtitle "Samba Active Directory Domain Controller" \
             --title "[ IP for Domain ]" \
             --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" \
@@ -114,7 +114,7 @@ function sambainput(){
 
     while true;
     do
-        samba_password=$(TERM=ansi whiptail --clear \
+        samba_password=$(whiptail --clear \
         --title "[ Administrator Password ]" \
         --backtitle "Samba Active Directory Domain Controller" \
         --nocancel \
@@ -123,7 +123,7 @@ function sambainput(){
 NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
         10 80  3>&1 1>&2 2>&3)
 
-        samba_password_again=$(TERM=ansi whiptail --clear \
+        samba_password_again=$(whiptail --clear \
         --title "[ Administrator Password ]"  \
         --backtitle "Samba Active Directory Domain Controller" \
         --nocancel \
@@ -133,7 +133,7 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
 
         if  [[ "$samba_password" != "$samba_password_again" ]];
         then
-            TERM=ansi whiptail --clear \
+            whiptail --clear \
             --backtitle "Samba Active Directory Domain Controller" \
             --title "[ Administrator Password ]" \
             --msgbox "Your password does match. Please retype it again" \
@@ -141,7 +141,7 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
 
         elif [[ "${#samba_password}" -lt 8 ]];
         then
-            TERM=ansi whiptail --clear \
+            whiptail --clear \
             --backtitle "Samba Active Directory Domain Controller" \
             --title "[ Administrator Password ]" \
             --msgbox "Your password does not meet the length requirement. IT MUST BE NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
@@ -155,7 +155,7 @@ NO LESS THAN 8 CHARACTERS and AT LEAST AN UPPER ALPHABET and A NUMBER" \
 
 function pathinput(){
 
-    NETLOGONPATH=$(TERM=ansi whiptail --clear \
+    NETLOGONPATH=$(whiptail --clear \
     --title "[ NETLOGON Selection ]"  \
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
@@ -163,7 +163,7 @@ function pathinput(){
     --inputbox "\nPlease enter a path for Samba User Netlogon for the active directory.\n\nDefault:  /klab/samba/netlogon\n" \
     10 100 3>&1 1>&2 2>&3)
 
-    HOMEPATH=$(TERM=ansi whiptail --clear \
+    HOMEPATH=$(whiptail --clear \
     --title "[ HOME Selection ]" \
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
@@ -171,7 +171,7 @@ function pathinput(){
     --inputbox "\nPlease enter a path for Samba User Home for the active directory.\n\nDefault:  /klab/samba/homes\n" \
     10 100 3>&1 1>&2 2>&3)
 
-    PROFILESPATH=$(TERM=ansi whiptail --clear \
+    PROFILESPATH=$(whiptail --clear \
     --title "[ HOME Selection ]" \
     --backtitle "Samba Active Directory Domain Controller" \
     --nocancel \
@@ -204,7 +204,7 @@ function inputcheck(){
 
     while true;
     do
-        if (TERM=ansi whiptail --clear \
+        if (whiptail --clear \
         --backtitle "Samba Active Directory Domain Controller" \
         --title "[ AD Information ]" \
         --yesno "Your Samba Active Directory Domain Controller Information is\n
@@ -215,7 +215,7 @@ function inputcheck(){
     IP    :    ${samba_ip}" \
         15 100);
         then
-            if (TERM=ansi whiptail --clear \
+            if (whiptail --clear \
             --backtitle "Samba Active Directory Domain Controller" \
             --title "[ DNS Information ]" \
             --yesno "Your Samba Active Directory Domain Controller DNS Information is\n
@@ -237,7 +237,7 @@ function inputcheck(){
 
     while true;
     do
-        if (TERM=ansi whiptail --clear \
+        if (whiptail --clear \
         --backtitle "Samba Active Directory Domain Controller" \
         --title "[ Path Information ]" \
         --yesno "Your Samba Active Directory Domain Controller Path Information is\n
